@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   const studentId = searchParams.get('studentId') || '';
   const term = searchParams.get('term') || '';
 
-  const where: any = { schoolId: session.schoolId };
+  const where: any = { class: { schoolId: session.schoolId } };
   if (classId) where.classId = classId;
   if (subjectId) where.subjectId = subjectId;
   if (studentId) where.studentId = studentId;

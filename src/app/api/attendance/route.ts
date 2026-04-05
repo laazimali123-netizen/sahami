@@ -25,8 +25,16 @@ export async function GET(request: NextRequest) {
   const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
   const studentId = searchParams.get('studentId') || '';
 
-  const where: any = { schoolId: session.schoolId, date };
-  if (classId) where.classId = classId;
+  // AttendanceRecord has no schoolId — filter by classIds belonging to the school
+  const classFilter: any = { schoolId: session.schoolId };
+  if (classId) classFilter.id = classId;
+  const schoolClasses = await db.schoolClass.findMany({
+    where: classFilter,
+    select: { id: true },
+  });
+  const schoolClassIds = schoolClasses.map(c => c.id);
+
+  const where: any = { classId: { in: schoolClassIds }, date };
   if (studentId) where.studentId = studentId;
 
   const records = await db.attendanceRecord.findMany({

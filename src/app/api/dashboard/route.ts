@@ -148,6 +148,14 @@ export async function GET(request: NextRequest) {
   // ═══════════════════════════════════════════════════════════
   // OWNER / MANAGER Dashboard — full school overview
   // ═══════════════════════════════════════════════════════════
+  // Grade and AttendanceRecord don't have schoolId, so get classIds first
+  const schoolClassIds = (await db.schoolClass.findMany({
+    where: { schoolId },
+    select: { id: true },
+  })).map(c => c.id);
+
+  const today = new Date().toISOString().split('T')[0];
+
   const [
     totalStudents,
     totalTeachers,
@@ -164,10 +172,10 @@ export async function GET(request: NextRequest) {
     db.schoolClass.count({ where: { schoolId } }),
     db.subject.count({ where: { schoolId } }),
     db.attendanceRecord.findMany({
-      where: { schoolId, date: new Date().toISOString().split('T')[0] },
+      where: { classId: { in: schoolClassIds }, date: today },
     }),
     db.grade.aggregate({
-      where: { schoolId },
+      where: { classId: { in: schoolClassIds } },
       _avg: { score: true },
     }),
     session.schoolPlan === 'PRO'
@@ -199,7 +207,7 @@ export async function GET(request: NextRequest) {
 
   // Grade distribution
   const allGrades = await db.grade.findMany({
-    where: { schoolId },
+    where: { classId: { in: schoolClassIds } },
     select: { score: true },
   });
   const gradeDistribution = [
@@ -220,7 +228,7 @@ export async function GET(request: NextRequest) {
   const attendanceTrend = await Promise.all(
     last7Days.map(async (date) => {
       const records = await db.attendanceRecord.findMany({
-        where: { schoolId, date },
+        where: { classId: { in: schoolClassIds }, date },
       });
       return {
         date,
