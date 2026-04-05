@@ -44,7 +44,9 @@ export type AppView =
   | 'admin-schools'
   | 'admin-school-create'
   | 'admin-school-detail'
-  | 'admin-employees';
+  | 'admin-employees'
+  | 'staff'
+  | 'staff-create';
 
 export interface SessionData {
   userId: string;

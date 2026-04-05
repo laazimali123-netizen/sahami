@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════
 // SAHAMI - Dashboard Stats
 // GET /api/dashboard
-// Returns comprehensive statistics for the school dashboard
+// Returns role-appropriate statistics
 // ═══════════════════════════════════════════════════════════
 
 import { NextRequest } from 'next/server';
@@ -42,7 +42,6 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Managers and teachers get school-specific stats
   if (!session.schoolId) {
     return new Response(JSON.stringify({ error: 'No school assigned' }), {
       status: 400,
@@ -52,6 +51,103 @@ export async function GET(request: NextRequest) {
 
   const schoolId = session.schoolId;
 
+  // ═══════════════════════════════════════════════════════════
+  // FINANCE Dashboard — financial data only
+  // ═══════════════════════════════════════════════════════════
+  if (session.role === 'FINANCE') {
+    const [totalStudents, paidFees, pendingFees, overdueFees] = await Promise.all([
+      db.student.count({ where: { schoolId, status: 'ACTIVE' } }),
+      db.feeRecord.aggregate({
+        where: { schoolId, status: 'PAID' },
+        _sum: { amount: true },
+      }),
+      db.feeRecord.aggregate({
+        where: { schoolId, status: 'PENDING' },
+        _sum: { amount: true },
+      }),
+      db.feeRecord.aggregate({
+        where: { schoolId, status: 'OVERDUE' },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    return new Response(JSON.stringify({
+      totalStudents,
+      totalCollected: paidFees._sum.amount || 0,
+      pendingFees: pendingFees._sum.amount || 0,
+      overdueFees: overdueFees._sum.amount || 0,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // TEACHER Dashboard — their classes and students only
+  // ═══════════════════════════════════════════════════════════
+  if (session.role === 'TEACHER') {
+    // Get classes assigned to this teacher
+    const classAssignments = await db.classTeacher.findMany({
+      where: { teacherId: session.userId, schoolId },
+      include: {
+        class: {
+          include: {
+            _count: { select: { enrollments: true } },
+          },
+        },
+      },
+    });
+
+    const classList = classAssignments.map(ca => ({
+      id: ca.class.id,
+      name: ca.class.name,
+      gradeLevel: ca.class.gradeLevel,
+      section: ca.class.section,
+      _count: ca.class._count,
+    }));
+
+    const classIds = classList.map(c => c.id);
+
+    // Count total students across all assigned classes
+    const myStudents = classIds.length > 0
+      ? await db.enrollment.count({
+          where: { classId: { in: classIds }, status: 'ACTIVE' },
+        })
+      : 0;
+
+    // Today's attendance for their classes
+    const today = new Date().toISOString().split('T')[0];
+    const todayAttendance = classIds.length > 0
+      ? await db.attendanceRecord.findMany({
+          where: { classId: { in: classIds }, date: today },
+        })
+      : [];
+
+    const presentToday = todayAttendance.filter(a => a.status === 'PRESENT' || a.status === 'LATE').length;
+    const totalToday = todayAttendance.length;
+    const todayRate = totalToday > 0 ? Math.round((presentToday / totalToday) * 100) : 0;
+
+    // Average grades entered by this teacher
+    const gradeStats = await db.grade.aggregate({
+      where: { teacherId: session.userId },
+      _avg: { score: true },
+    });
+
+    return new Response(JSON.stringify({
+      myClasses: classList.length,
+      myStudents,
+      todayAttendance: totalToday > 0 ? `${todayRate}%` : '—',
+      myAverageGrade: gradeStats._avg.score ? Math.round(gradeStats._avg.score * 10) / 10 : '—',
+      classList,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // OWNER / MANAGER Dashboard — full school overview
+  // ═══════════════════════════════════════════════════════════
   const [
     totalStudents,
     totalTeachers,
@@ -63,35 +159,26 @@ export async function GET(request: NextRequest) {
     unreadMessages,
     recentEnrollments,
   ] = await Promise.all([
-    // Total active students
     db.student.count({ where: { schoolId, status: 'ACTIVE' } }),
-    // Total active teachers
-    db.user.count({ where: { schoolId, role: 'TEACHER', isActive: true } }),
-    // Total classes
+    db.user.count({ where: { schoolId, role: { in: ['TEACHER', 'MANAGER', 'FINANCE'] }, isActive: true } }),
     db.schoolClass.count({ where: { schoolId } }),
-    // Total subjects
     db.subject.count({ where: { schoolId } }),
-    // Today's attendance
     db.attendanceRecord.findMany({
-      where: { schoolId: schoolId, date: new Date().toISOString().split('T')[0] },
+      where: { schoolId, date: new Date().toISOString().split('T')[0] },
     }),
-    // Average grades
     db.grade.aggregate({
       where: { schoolId },
       _avg: { score: true },
     }),
-    // Pending fees (PRO)
     session.schoolPlan === 'PRO'
       ? db.feeRecord.aggregate({
           where: { schoolId, status: { in: ['PENDING', 'OVERDUE'] } },
           _sum: { amount: true },
         })
       : Promise.resolve({ _sum: { amount: 0 } }),
-    // Unread messages
     db.message.count({
       where: { receiverId: session.userId, isRead: false },
     }),
-    // Recent enrollments
     db.student.findMany({
       where: { schoolId },
       include: {
@@ -105,12 +192,12 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
-  // Calculate attendance rate from today's data
+  // Calculate attendance rate
   const presentCount = todayAttendance.filter((a) => a.status === 'PRESENT' || a.status === 'LATE').length;
   const totalMarked = todayAttendance.length;
   const attendanceRate = totalMarked > 0 ? Math.round((presentCount / totalMarked) * 100) : 0;
 
-  // Build grade distribution
+  // Grade distribution
   const allGrades = await db.grade.findMany({
     where: { schoolId },
     select: { score: true },
@@ -123,7 +210,7 @@ export async function GET(request: NextRequest) {
     { range: 'Below 60', count: allGrades.filter((g) => g.score < 60).length },
   ];
 
-  // Build attendance trend (last 7 days)
+  // Attendance trend
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));

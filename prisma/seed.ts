@@ -34,7 +34,7 @@ async function main() {
   });
   console.log(`✅ School created: ${school.name} (${school.plan} plan)`);
 
-  // ─── Create Users ───
+  // ─── Create SUPER_ADMIN ───
   const superAdmin = await prisma.user.upsert({
     where: { email: 'admin@sahami.com' },
     update: {},
@@ -48,6 +48,23 @@ async function main() {
   });
   console.log(`✅ Super Admin: ${superAdmin.email} / admin123`);
 
+  // ─── Create OWNER (school creator) ───
+  const owner = await prisma.user.upsert({
+    where: { email: 'owner@alnoor.edu' },
+    update: {},
+    create: {
+      id: 'owner_001',
+      email: 'owner@alnoor.edu',
+      password: await hashPassword('owner123'),
+      name: 'Dr. Fatima Al-Hassan',
+      phone: '+1 (555) 111-2222',
+      role: 'OWNER',
+      schoolId: school.id,
+    },
+  });
+  console.log(`✅ Owner: ${owner.email} / owner123`);
+
+  // ─── Create MANAGER ───
   const manager = await prisma.user.upsert({
     where: { email: 'manager@alnoor.edu' },
     update: {},
@@ -55,17 +72,18 @@ async function main() {
       id: 'manager_001',
       email: 'manager@alnoor.edu',
       password: await hashPassword('manager123'),
-      name: 'Dr. Fatima Al-Hassan',
-      phone: '+1 (555) 111-2222',
-      role: 'OWNER',
+      name: 'Mr. Omar Al-Rashid',
+      phone: '+1 (555) 111-2223',
+      role: 'MANAGER',
       schoolId: school.id,
     },
   });
-  console.log(`✅ Owner: ${manager.email} / manager123`);
+  console.log(`✅ Manager: ${manager.email} / manager123`);
 
+  // ─── Create Teachers ───
   const teachers = [];
   const teacherData = [
-    { id: 'teacher_001', name: 'Mr. James Wilson', email: 'james.wilson@alnoor.edu', phone: '+1 (555) 201-3001', subject: 'Mathematics' },
+    { id: 'teacher_001', name: 'Mr. James Wilson', email: 'teacher@alnoor.edu', phone: '+1 (555) 201-3001', subject: 'Mathematics' },
     { id: 'teacher_002', name: 'Ms. Sarah Chen', email: 'sarah.chen@alnoor.edu', phone: '+1 (555) 201-3002', subject: 'Physics' },
     { id: 'teacher_003', name: 'Mr. Ahmed Al-Rashid', email: 'ahmed.rashid@alnoor.edu', phone: '+1 (555) 201-3003', subject: 'English' },
     { id: 'teacher_004', name: 'Ms. Maria Santos', email: 'maria.santos@alnoor.edu', phone: '+1 (555) 201-3004', subject: 'Chemistry' },
@@ -91,7 +109,7 @@ async function main() {
     });
     teachers.push(teacher);
   }
-  console.log(`✅ Teachers created: ${teachers.length} (password: teacher123)`);
+  console.log(`✅ Teachers created: ${teachers.length} (teacher@alnoor.edu / teacher123)`);
 
   // ─── Create Finance Staff ───
   const financeStaff = await prisma.user.upsert({
@@ -166,14 +184,14 @@ async function main() {
 
   // ─── Assign teachers to classes ───
   const teacherAssignments = [
-    { teacherId: 'teacher_001', classIds: ['class_001', 'class_003', 'class_005', 'class_007'] }, // Math
-    { teacherId: 'teacher_002', classIds: ['class_002', 'class_004', 'class_006', 'class_008'] }, // Physics
-    { teacherId: 'teacher_003', classIds: ['class_001', 'class_002', 'class_003', 'class_004'] }, // English
-    { teacherId: 'teacher_004', classIds: ['class_005', 'class_006', 'class_007', 'class_008'] }, // Chemistry
-    { teacherId: 'teacher_005', classIds: ['class_001', 'class_002', 'class_003', 'class_004'] }, // Biology
-    { teacherId: 'teacher_006', classIds: ['class_005', 'class_006', 'class_007', 'class_008'] }, // History
-    { teacherId: 'teacher_007', classIds: ['class_001', 'class_002', 'class_003', 'class_005'] }, // CS
-    { teacherId: 'teacher_008', classIds: ['class_004', 'class_006', 'class_007', 'class_008'] }, // Art
+    { teacherId: 'teacher_001', classIds: ['class_001', 'class_003', 'class_005', 'class_007'] },
+    { teacherId: 'teacher_002', classIds: ['class_002', 'class_004', 'class_006', 'class_008'] },
+    { teacherId: 'teacher_003', classIds: ['class_001', 'class_002', 'class_003', 'class_004'] },
+    { teacherId: 'teacher_004', classIds: ['class_005', 'class_006', 'class_007', 'class_008'] },
+    { teacherId: 'teacher_005', classIds: ['class_001', 'class_002', 'class_003', 'class_004'] },
+    { teacherId: 'teacher_006', classIds: ['class_005', 'class_006', 'class_007', 'class_008'] },
+    { teacherId: 'teacher_007', classIds: ['class_001', 'class_002', 'class_003', 'class_005'] },
+    { teacherId: 'teacher_008', classIds: ['class_004', 'class_006', 'class_007', 'class_008'] },
   ];
 
   for (const ta of teacherAssignments) {
@@ -198,7 +216,7 @@ async function main() {
   const students = [];
   let studentNum = 1;
   for (const cls of classes) {
-    const numStudents = 6 + Math.floor(Math.random() * 5); // 6-10 per class
+    const numStudents = 6 + Math.floor(Math.random() * 5);
     for (let i = 0; i < numStudents; i++) {
       const firstName = firstNames[studentNum % firstNames.length];
       const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
@@ -241,7 +259,6 @@ async function main() {
     date.setDate(date.getDate() - dayOffset);
     const dateStr = date.toISOString().split('T')[0];
 
-    // Skip weekends
     const dayOfWeek = date.getDay();
     if (dayOfWeek === 0 || dayOfWeek === 6) continue;
 
@@ -293,11 +310,10 @@ async function main() {
     });
 
     for (const student of enrolledStudents) {
-      // 3-5 grades per student per subject
       for (const subject of subjects.slice(0, 6)) {
         const numGrades = 3 + Math.floor(Math.random() * 3);
         for (let g = 0; g < numGrades; g++) {
-          const score = 55 + Math.floor(Math.random() * 45); // 55-99
+          const score = 55 + Math.floor(Math.random() * 45);
           const maxScore = types[g % types.length] === 'QUIZ' ? 20 : 100;
 
           await prisma.grade.create({
@@ -336,7 +352,7 @@ async function main() {
       data: {
         ...a,
         schoolId: school.id,
-        authorId: manager.id,
+        authorId: owner.id,
       },
     });
   }
@@ -414,7 +430,7 @@ async function main() {
               create: {
                 amount: f.amount,
                 method: ['CASH', 'BANK_TRANSFER', 'ONLINE'][Math.floor(Math.random() * 3)],
-                receivedBy: manager.id,
+                receivedBy: financeStaff.id,
                 paidAt: '2025-09-10',
               },
             },
@@ -428,10 +444,10 @@ async function main() {
 
   // ─── Create Messages ───
   const messages = [
-    { from: 'teacher_001', to: 'manager_001', subject: 'Math supplies needed', content: 'We need to order new geometry sets for Grade 10 and 11 students. The current ones are worn out.' },
+    { from: 'teacher_001', to: 'owner_001', subject: 'Math supplies needed', content: 'We need to order new geometry sets for Grade 10 and 11 students. The current ones are worn out.' },
     { from: 'teacher_003', to: 'teacher_001', subject: 'Cross-curriculum project', content: 'Would you be interested in a joint English-Math project? I was thinking about data analysis of literary works.' },
-    { from: 'manager_001', to: 'teacher_005', subject: 'Biology lab equipment', content: 'Please submit the list of required lab equipment for the upcoming semester by Friday.' },
-    { from: 'teacher_007', to: 'manager_001', subject: 'Computer lab maintenance', content: 'Some computers in Lab 2 need maintenance. Can we schedule a technician visit this week?' },
+    { from: 'owner_001', to: 'teacher_005', subject: 'Biology lab equipment', content: 'Please submit the list of required lab equipment for the upcoming semester by Friday.' },
+    { from: 'teacher_007', to: 'owner_001', subject: 'Computer lab maintenance', content: 'Some computers in Lab 2 need maintenance. Can we schedule a technician visit this week?' },
     { from: 'teacher_002', to: 'teacher_004', subject: 'Science department meeting', content: 'Reminder: Science department meeting is on Thursday at 2 PM. Please prepare your curriculum updates.' },
   ];
 
@@ -442,7 +458,7 @@ async function main() {
         receiverId: m.to,
         subject: m.subject,
         content: m.content,
-        ...(m.to !== 'manager_001' ? { isRead: true } : {}),
+        ...(m.to !== 'owner_001' ? { isRead: true } : {}),
       },
     });
   }
@@ -451,8 +467,9 @@ async function main() {
   console.log('\n🎉 SAHAMI database seeded successfully!');
   console.log('\n📋 Demo Credentials:');
   console.log('   Super Admin:  admin@sahami.com / admin123');
-  console.log('   Owner:        manager@alnoor.edu / manager123');
-  console.log('   Teacher:      james.wilson@alnoor.edu / teacher123');
+  console.log('   Owner:        owner@alnoor.edu / owner123');
+  console.log('   Manager:      manager@alnoor.edu / manager123');
+  console.log('   Teacher:      teacher@alnoor.edu / teacher123');
   console.log('   Finance:      finance@alnoor.edu / finance123');
   console.log('   (Any teacher email / teacher123)\n');
 }

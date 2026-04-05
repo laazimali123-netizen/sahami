@@ -93,8 +93,9 @@ export default function LoginPage() {
               <div className="rounded-lg bg-muted/60 p-3 text-sm">
                 <p className="font-medium text-muted-foreground mb-1">Demo Credentials</p>
                 <p className="text-foreground font-mono text-xs">Super Admin: admin@sahami.com / admin123</p>
-                <p className="text-foreground font-mono text-xs mt-0.5">Owner: manager@alnoor.edu / manager123</p>
-                <p className="text-foreground font-mono text-xs mt-0.5">Teacher: james.wilson@alnoor.edu / teacher123</p>
+                <p className="text-foreground font-mono text-xs mt-0.5">Owner: owner@alnoor.edu / owner123</p>
+                <p className="text-foreground font-mono text-xs mt-0.5">Manager: manager@alnoor.edu / manager123</p>
+                <p className="text-foreground font-mono text-xs mt-0.5">Teacher: teacher@alnoor.edu / teacher123</p>
                 <p className="text-foreground font-mono text-xs mt-0.5">Finance: finance@alnoor.edu / finance123</p>
               </div>
             </CardContent>

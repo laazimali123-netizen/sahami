@@ -6,7 +6,7 @@ import {
   ClipboardCheck, BarChart3, Calendar, Megaphone,
   MessageSquare, DollarSign, PieChart, Settings, LogOut,
   ChevronLeft, ChevronRight, X, ShieldCheck, Sparkles,
-  Building2, UserCog, Shield,
+  Building2, UserCog, Shield, UserPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,8 +27,8 @@ interface NavItem {
   pro?: boolean;
 }
 
-// Navigation for school users (OWNER, MANAGER, TEACHER, FINANCE)
-const schoolNav: NavItem[] = [
+// Navigation for OWNER (full access to everything)
+const ownerNav: NavItem[] = [
   { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { view: 'students', label: 'Students', icon: GraduationCap },
   { view: 'teachers', label: 'Teachers', icon: Users },
@@ -41,10 +41,36 @@ const schoolNav: NavItem[] = [
   { view: 'messages', label: 'Messages', icon: MessageSquare, pro: true },
   { view: 'fees', label: 'Finance', icon: DollarSign, pro: true },
   { view: 'reports', label: 'Reports', icon: PieChart, pro: true },
+  { view: 'staff', label: 'Staff', icon: UserPlus },
+];
+
+// Navigation for MANAGER (no fees, no settings, no staff)
+const managerNav: NavItem[] = [
+  { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { view: 'students', label: 'Students', icon: GraduationCap },
+  { view: 'teachers', label: 'Teachers', icon: Users },
+  { view: 'classes', label: 'Classes', icon: School },
+  { view: 'subjects', label: 'Subjects', icon: BookOpen },
+  { view: 'attendance', label: 'Attendance', icon: ClipboardCheck },
+  { view: 'grades', label: 'Grades', icon: BarChart3 },
+  { view: 'timetable', label: 'Schedule', icon: Calendar },
+  { view: 'announcements', label: 'Announcements', icon: Megaphone },
+  { view: 'messages', label: 'Messages', icon: MessageSquare, pro: true },
+  { view: 'reports', label: 'Reports', icon: PieChart, pro: true },
+];
+
+// Navigation for TEACHER (limited access)
+const teacherNav: NavItem[] = [
+  { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { view: 'classes', label: 'My Classes', icon: School },
+  { view: 'attendance', label: 'Attendance', icon: ClipboardCheck },
+  { view: 'grades', label: 'Grades', icon: BarChart3 },
+  { view: 'timetable', label: 'Schedule', icon: Calendar },
 ];
 
 // Navigation for FINANCE role (limited to finance only)
 const financeNav: NavItem[] = [
+  { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { view: 'fees', label: 'Fee Management', icon: DollarSign },
   { view: 'reports', label: 'Reports', icon: PieChart },
 ];
@@ -67,12 +93,20 @@ export default function Sidebar() {
 
   const isAdmin = session?.role === 'SUPER_ADMIN';
   const isOwner = session?.role === 'OWNER';
+  const isManager = session?.role === 'MANAGER';
+  const isTeacher = session?.role === 'TEACHER';
   const isFinance = session?.role === 'FINANCE';
   const isPro = session?.schoolPlan === 'PRO';
   const initials = session?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
 
   // Pick the right nav based on role
-  const navItems = isAdmin ? adminNav : isFinance ? financeNav : schoolNav;
+  let navItems: NavItem[] = [];
+  if (isAdmin) navItems = adminNav;
+  else if (isOwner) navItems = ownerNav;
+  else if (isManager) navItems = managerNav;
+  else if (isTeacher) navItems = teacherNav;
+  else if (isFinance) navItems = financeNav;
+  else navItems = teacherNav; // fallback
 
   const handleNav = (item: NavItem) => {
     // FINANCE role has full access to finance regardless of pro
@@ -86,7 +120,6 @@ export default function Sidebar() {
 
   const isActive = (view: AppView) => {
     if (currentView === view) return true;
-    // Sub-view matches for school nav
     const subViewMap: Record<string, AppView[]> = {
       'students': ['student-detail', 'student-form'],
       'teachers': ['teacher-detail', 'teacher-form'],
@@ -96,17 +129,18 @@ export default function Sidebar() {
       'announcements': ['announcement-form'],
       'messages': ['message-compose'],
       'fees': ['fee-form'],
+      'staff': ['staff-create'],
       'admin-schools': ['admin-school-create', 'admin-school-detail'],
     };
     return subViewMap[view]?.includes(currentView) || false;
   };
 
-  // Determine which nav items should be locked
   const isLocked = (item: NavItem) => {
-    // FINANCE role has access to all finance features
     if (isFinance && item.pro) return false;
     return item.pro && !isPro;
   };
+
+  const canSeeSettings = isOwner || isManager;
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -178,7 +212,7 @@ export default function Sidebar() {
                   {sidebarOpen && isAdmin && (
                     <Shield className="h-3 w-3 text-amber-400 opacity-60" />
                   )}
-                  {sidebarOpen && isOwner && (
+                  {sidebarOpen && isOwner && active && !locked && (
                     <Shield className="h-3 w-3 text-emerald-400 opacity-60" />
                   )}
                   {sidebarOpen && item.pro && !locked && (
@@ -216,7 +250,7 @@ export default function Sidebar() {
 
         {/* Settings & User */}
         <div className="shrink-0 px-2 py-3 space-y-1">
-          {!isAdmin && (
+          {canSeeSettings && (
             <button
               onClick={() => { navigate('settings'); if (window.innerWidth < 1024) toggleSidebar(); }}
               className={cn(
@@ -236,7 +270,7 @@ export default function Sidebar() {
               <div className="flex items-center gap-3">
                 <div className={cn(
                   'h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0',
-                  isAdmin ? 'bg-amber-600' : isOwner ? 'bg-emerald-600' : isFinance ? 'bg-blue-600' : 'bg-teal-600',
+                  isAdmin ? 'bg-amber-600' : isOwner ? 'bg-emerald-600' : isFinance ? 'bg-blue-600' : isManager ? 'bg-violet-600' : 'bg-teal-600',
                 )}>
                   {initials}
                 </div>
@@ -253,7 +287,9 @@ export default function Sidebar() {
                     ? 'bg-emerald-500/20 text-emerald-300'
                     : isFinance
                       ? 'bg-blue-500/20 text-blue-300'
-                      : 'bg-teal-500/20 text-teal-300',
+                      : isManager
+                        ? 'bg-violet-500/20 text-violet-300'
+                        : 'bg-teal-500/20 text-teal-300',
               )}>
                 {isAdmin ? (
                   <><Shield className="h-3 w-3 mr-1" /> SUPER ADMIN</>
@@ -261,6 +297,8 @@ export default function Sidebar() {
                   <><Shield className="h-3 w-3 mr-1" /> OWNER</>
                 ) : isFinance ? (
                   <><DollarSign className="h-3 w-3 mr-1" /> FINANCE</>
+                ) : isManager ? (
+                  <><UserCog className="h-3 w-3 mr-1" /> MANAGER</>
                 ) : session.schoolPlan ? (
                   <><Sparkles className="h-3 w-3 mr-1" /> {session.schoolPlan} Plan</>
                 ) : null}

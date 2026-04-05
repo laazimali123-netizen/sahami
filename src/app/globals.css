@@ -158,3 +158,59 @@
   background: oklch(0.35 0.03 165);
   border-radius: 3px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   SAHAMI Landing Page Animations (CSS-only, progressive enhancement)
+   Content is visible by default; animations are a visual bonus.
+   ═══════════════════════════════════════════════════════════ */
+
+@keyframes fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-down {
+  animation: fade-down 0.5s ease-out both;
+}
+
+.animate-fade-up-delay-1 {
+  animation: fade-up 0.7s ease-out 0.1s both;
+}
+
+/* On-scroll animations: elements start visible, animate on scroll */
+.animate-on-scroll {
+  opacity: 1;
+}
+
+/* When JS hydrates and IntersectionObserver is available, these get animation classes */
+.animate-on-scroll.is-visible {
+  animation: fade-in 0.5s ease-out both;
+}

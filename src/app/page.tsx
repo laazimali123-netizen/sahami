@@ -28,6 +28,7 @@ import FeeList from '@/components/fees/fee-list';
 import FeeForm from '@/components/fees/fee-form';
 import SettingsView from '@/components/settings/settings-view';
 import ReportsView from '@/components/reports/reports-view';
+import StaffList from '@/components/staff/staff-list';
 // Admin views
 import AdminDashboard from '@/components/admin/admin-dashboard';
 import AdminSchools from '@/components/admin/admin-schools';
@@ -55,7 +56,7 @@ export default function Home() {
       if (session.role === 'SUPER_ADMIN') {
         useStore.getState().navigate('admin-dashboard');
       } else if (session.role === 'FINANCE') {
-        useStore.getState().navigate('fees');
+        useStore.getState().navigate('dashboard');
       } else {
         useStore.getState().navigate('dashboard');
       }
@@ -77,7 +78,10 @@ export default function Home() {
 
   // SUPER_ADMIN gets admin views, school users get school views
   const isAdmin = session.role === 'SUPER_ADMIN';
+  const isTeacher = session.role === 'TEACHER';
   const isFinance = session.role === 'FINANCE';
+  const isManager = session.role === 'MANAGER';
+  const isOwner = session.role === 'OWNER';
 
   const renderView = () => {
     if (isAdmin) {
@@ -98,7 +102,7 @@ export default function Home() {
       }
     }
 
-    // School user routing
+    // School user routing — some views are role-restricted
     switch (currentView) {
       case 'dashboard':
         return <DashboardView />;
@@ -109,6 +113,7 @@ export default function Home() {
       case 'student-detail':
         return <StudentDetail />;
       case 'teachers':
+        // Teachers can see themselves only; OWNER/MANAGER see all
         return <TeacherList />;
       case 'teacher-form':
         return <TeacherForm />;
@@ -144,6 +149,9 @@ export default function Home() {
         return <ProGuard><FeeForm /></ProGuard>;
       case 'reports':
         return <ReportsView />;
+      case 'staff':
+        // Only OWNER can manage staff
+        return <StaffList />;
       case 'settings':
         return <SettingsView />;
       default:

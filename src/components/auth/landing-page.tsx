@@ -2,8 +2,8 @@
 
 import { useStore } from '@/store';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Users, ClipboardCheck, BarChart3, Calendar, Megaphone, DollarSign, MessageSquare, PieChart, ArrowRight, Check } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { GraduationCap, Users, ClipboardCheck, BarChart3, Calendar, Megaphone, Check, ArrowRight } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 const features = [
   { icon: Users, title: 'Student Management', desc: 'Track enrollment, profiles, and academic history for every student.' },
@@ -37,22 +37,42 @@ const proFeatures = [
   'Unlimited Teachers',
 ];
 
+/** Progressive enhancement: fade-in elements when they scroll into view */
+function useScrollReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1 },
+    );
+    const items = el.querySelectorAll('.animate-on-scroll');
+    items.forEach((item) => observer.observe(item));
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
+
 export default function LandingPage() {
   const navigate = useStore((s) => s.navigate);
+  const scrollRef = useScrollReveal();
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
+    <div className="min-h-screen bg-background" ref={scrollRef}>
+      {/* Hero Section — no animation, content visible immediately */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-400 opacity-95" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.1)_0%,_transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(0,0,0,0.1)_0%,_transparent_50%)]" />
-        <motion.nav
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10 flex items-center justify-between px-6 py-4 md:px-12 lg:px-20"
-        >
+        <nav className="relative z-10 flex items-center justify-between px-6 py-4 md:px-12 lg:px-20">
           <div className="flex items-center gap-3">
             <img src="/sahami-logo.png" alt="SAHAMI" className="h-10 w-10 rounded-lg" />
             <span className="text-2xl font-bold text-white tracking-tight">SAHAMI</span>
@@ -65,15 +85,10 @@ export default function LandingPage() {
               Get Started
             </Button>
           </div>
-        </motion.nav>
+        </nav>
 
         <div className="relative z-10 max-w-6xl mx-auto px-6 pt-16 pb-32 md:pt-24 md:pb-40">
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-center"
-          >
+          <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-white/15 text-white/90 text-sm font-medium backdrop-blur-sm">
               <GraduationCap className="h-4 w-4" />
               Trusted by 500+ schools worldwide
@@ -103,7 +118,7 @@ export default function LandingPage() {
                 Sign In
               </Button>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Wave separator */}
@@ -116,32 +131,22 @@ export default function LandingPage() {
 
       {/* Features Grid */}
       <section className="max-w-6xl mx-auto px-6 py-20">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          whileInView={{ y: 0, opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-14"
-        >
+        <div className="text-center mb-14 animate-on-scroll">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything You Need to Run Your School</h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">A comprehensive suite of tools designed to make school administration effortless.</p>
-        </motion.div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((f, i) => (
-            <motion.div
+          {features.map((f) => (
+            <div
               key={f.title}
-              initial={{ y: 20, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="group p-6 rounded-2xl border bg-card hover:shadow-lg hover:border-emerald-200 transition-all duration-300"
+              className="group p-6 rounded-2xl border bg-card hover:shadow-lg hover:border-emerald-200 transition-all duration-300 animate-on-scroll"
             >
               <div className="h-12 w-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 group-hover:bg-emerald-100 transition-colors">
                 <f.icon className="h-6 w-6" />
               </div>
               <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">{f.desc}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
@@ -149,25 +154,13 @@ export default function LandingPage() {
       {/* Pricing Section */}
       <section className="bg-muted/50 py-20">
         <div className="max-w-5xl mx-auto px-6">
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-14"
-          >
+          <div className="text-center mb-14 animate-on-scroll">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
             <p className="text-muted-foreground text-lg">Start free, upgrade when you need more power.</p>
-          </motion.div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Basic Plan */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="p-8 rounded-2xl border bg-card shadow-sm"
-            >
+            <div className="p-8 rounded-2xl border bg-card shadow-sm animate-on-scroll">
               <h3 className="text-xl font-bold mb-1">BASIC</h3>
               <p className="text-muted-foreground text-sm mb-4">For small schools getting started</p>
               <div className="flex items-baseline gap-1 mb-6">
@@ -184,16 +177,10 @@ export default function LandingPage() {
               <Button className="w-full" variant="outline" onClick={() => navigate('register', { plan: 'BASIC' })}>
                 Get Started Free
               </Button>
-            </motion.div>
+            </div>
 
             {/* Pro Plan */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative p-8 rounded-2xl border-2 border-emerald-500 bg-card shadow-lg"
-            >
+            <div className="relative p-8 rounded-2xl border-2 border-emerald-500 bg-card shadow-lg animate-on-scroll">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-emerald-500 text-white text-xs font-bold rounded-full">
                 RECOMMENDED
               </div>
@@ -214,20 +201,14 @@ export default function LandingPage() {
               <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => navigate('register', { plan: 'PRO' })}>
                 Start PRO Trial
               </Button>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-20">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          whileInView={{ y: 0, opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="max-w-4xl mx-auto px-6 text-center"
-        >
+        <div className="max-w-4xl mx-auto px-6 text-center animate-on-scroll">
           <div className="p-12 rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-500 text-white">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Transform Your School?</h2>
             <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">
@@ -238,7 +219,7 @@ export default function LandingPage() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
-        </motion.div>
+        </div>
       </section>
 
       {/* Footer */}

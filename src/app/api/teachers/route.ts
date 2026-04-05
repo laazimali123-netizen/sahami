@@ -24,6 +24,12 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get('search') || '';
 
   const where: any = { schoolId: session.schoolId, role: 'TEACHER' };
+
+  // TEACHER role: only see themselves
+  if (session.role === 'TEACHER') {
+    where.id = session.userId;
+  }
+
   if (search) {
     where.OR = [
       { name: { contains: search } },
@@ -55,8 +61,8 @@ export async function POST(request: NextRequest) {
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
-  if (session.role !== 'MANAGER') {
-    return new Response(JSON.stringify({ error: 'Only managers can create teachers' }), {
+  if (!['OWNER', 'MANAGER'].includes(session.role)) {
+    return new Response(JSON.stringify({ error: 'Only owners and managers can create teachers' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });

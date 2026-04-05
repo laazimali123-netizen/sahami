@@ -1,23 +1,219 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useStore, type DashboardStats } from '@/store';
+import { useStore, type DashboardStats, type UserRole } from '@/store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   GraduationCap, Users, School, TrendingUp, TrendingDown,
-  UserPlus, ClipboardCheck, Megaphone, Activity,
+  UserPlus, ClipboardCheck, Megaphone, Activity, DollarSign,
+  Calendar, BarChart3,
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+  Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 
 const COLORS = ['#10b981', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-export default function DashboardView() {
+// ═══════════════════════════════════════════════════════════
+// FINANCE Dashboard — for FINANCE role users
+// ═══════════════════════════════════════════════════════════
+function FinanceDashboard({ session }: { session: any }) {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch('/api/dashboard');
+        if (res.ok) setStats(await res.json());
+      } catch { /* empty */ }
+      finally { setLoading(false); }
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">Finance Dashboard</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}><CardContent className="p-6"><Skeleton className="h-20 w-full" /></CardContent></Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const cards = [
+    { title: 'Total Collected', value: `$${stats?.totalCollected?.toLocaleString() || '0'}`, icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { title: 'Pending Fees', value: `$${stats?.pendingFees?.toLocaleString() || '0'}`, icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { title: 'Overdue', value: `$${stats?.overdueFees?.toLocaleString() || '0'}`, icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-50' },
+    { title: 'Total Students', value: stats?.totalStudents || 0, icon: GraduationCap, color: 'text-teal-600', bg: 'bg-teal-50' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Finance Dashboard</h1>
+        <p className="text-muted-foreground text-sm mt-1">Fee collection overview and payment tracking</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map((card) => (
+          <Card key={card.title} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className={`h-10 w-10 rounded-lg ${card.bg} flex items-center justify-center`}>
+                  <card.icon className={`h-5 w-5 ${card.color}`} />
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl font-bold">{card.value}</p>
+                <p className="text-sm text-muted-foreground mt-1">{card.title}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button variant="outline" className="w-full justify-start gap-3" onClick={() => useStore.getState().navigate('fees')}>
+            <DollarSign className="h-4 w-4 text-emerald-600" />
+            Manage Fee Records
+          </Button>
+          <Button variant="outline" className="w-full justify-start gap-3" onClick={() => useStore.getState().navigate('reports')}>
+            <BarChart3 className="h-4 w-4 text-teal-600" />
+            View Financial Reports
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// TEACHER Dashboard — for TEACHER role users
+// ═══════════════════════════════════════════════════════════
+function TeacherDashboard({ session }: { session: any }) {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch('/api/dashboard');
+        if (res.ok) setStats(await res.json());
+      } catch { /* empty */ }
+      finally { setLoading(false); }
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">My Dashboard</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}><CardContent className="p-6"><Skeleton className="h-20 w-full" /></CardContent></Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const cards = [
+    { title: 'My Classes', value: stats?.myClasses || 0, icon: School, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { title: 'My Students', value: stats?.myStudents || 0, icon: GraduationCap, color: 'text-teal-600', bg: 'bg-teal-50' },
+    { title: 'Today Attendance', value: stats?.todayAttendance || '—', icon: ClipboardCheck, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { title: 'Average Grade', value: stats?.myAverageGrade || '—', icon: Activity, color: 'text-violet-600', bg: 'bg-violet-50' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">My Dashboard</h1>
+        <p className="text-muted-foreground text-sm mt-1">Welcome back, {session?.name}</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map((card) => (
+          <Card key={card.title} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className={`h-10 w-10 rounded-lg ${card.bg} flex items-center justify-center`}>
+                  <card.icon className={`h-5 w-5 ${card.color}`} />
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl font-bold">{card.value}</p>
+                <p className="text-sm text-muted-foreground mt-1">{card.title}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button variant="outline" className="w-full justify-start gap-3" onClick={() => useStore.getState().navigate('attendance-mark')}>
+              <ClipboardCheck className="h-4 w-4 text-emerald-600" />
+              Mark Attendance
+            </Button>
+            <Button variant="outline" className="w-full justify-start gap-3" onClick={() => useStore.getState().navigate('grades')}>
+              <BarChart3 className="h-4 w-4 text-teal-600" />
+              Enter Grades
+            </Button>
+            <Button variant="outline" className="w-full justify-start gap-3" onClick={() => useStore.getState().navigate('timetable')}>
+              <Calendar className="h-4 w-4 text-amber-600" />
+              View Schedule
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">My Classes</CardTitle>
+            <CardDescription>Classes assigned to you</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {stats?.classList?.length > 0 ? (
+              <div className="space-y-2 max-h-64 overflow-y-auto sahami-scroll">
+                {stats.classList.map((cls: any) => (
+                  <div key={cls.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <School className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm font-medium">{cls.name}</span>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">{cls._count?.enrollments || 0} students</Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                <School className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p>No classes assigned yet</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// OWNER / MANAGER Dashboard — full school overview
+// ═══════════════════════════════════════════════════════════
+function SchoolDashboard({ session }: { session: any }) {
   const store = useStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,14 +227,13 @@ export default function DashboardView() {
           setStats(data);
           store.setDashboardStats(data);
         }
-      } catch {
-        // fallback empty
-      } finally {
-        setLoading(false);
-      }
+      } catch { /* empty */ }
+      finally { setLoading(false); }
     }
     load();
   }, [store]);
+
+  const isOwner = session?.role === 'OWNER';
 
   const statCards = [
     {
@@ -51,7 +246,7 @@ export default function DashboardView() {
       bg: 'bg-emerald-50',
     },
     {
-      title: 'Total Teachers',
+      title: 'Total Staff',
       value: stats?.totalTeachers ?? 0,
       icon: Users,
       change: '+5%',
@@ -148,7 +343,6 @@ export default function DashboardView() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Attendance Trend */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Attendance Trend</CardTitle>
@@ -175,7 +369,6 @@ export default function DashboardView() {
           </CardContent>
         </Card>
 
-        {/* Grade Distribution */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Grade Distribution</CardTitle>
@@ -208,7 +401,6 @@ export default function DashboardView() {
 
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Quick Actions</CardTitle>
@@ -226,10 +418,15 @@ export default function DashboardView() {
               <Megaphone className="h-4 w-4 text-amber-600" />
               Post Announcement
             </Button>
+            {isOwner && (
+              <Button variant="outline" className="w-full justify-start gap-3" onClick={() => store.navigate('staff')}>
+                <UserPlus className="h-4 w-4 text-violet-600" />
+                Manage Staff
+              </Button>
+            )}
           </CardContent>
         </Card>
 
-        {/* Recent Enrollments */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Recent Enrollments</CardTitle>
@@ -266,4 +463,26 @@ export default function DashboardView() {
       </div>
     </div>
   );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Main DashboardView — routes to the right dashboard by role
+// ═══════════════════════════════════════════════════════════
+export default function DashboardView() {
+  const session = useStore((s) => s.session);
+
+  if (!session) return null;
+
+  const role = session.role as UserRole;
+
+  if (role === 'FINANCE') {
+    return <FinanceDashboard session={session} />;
+  }
+
+  if (role === 'TEACHER') {
+    return <TeacherDashboard session={session} />;
+  }
+
+  // OWNER and MANAGER get the full school dashboard
+  return <SchoolDashboard session={session} />;
 }
