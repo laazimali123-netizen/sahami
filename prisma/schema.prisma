@@ -1,0 +1,317 @@
+// ═══════════════════════════════════════════════════════════
+// SAHAMI - Enterprise School Management SaaS Platform
+// Multi-tenant Architecture with SQLite (Prisma ORM)
+// ═══════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// TENANT: School (each school is an isolated tenant)
+// ─────────────────────────────────────────────────────────────
+model School {
+  id            String   @id @default(cuid())
+  name          String
+  nameAr        String?
+  address       String?
+  phone         String?
+  email         String?
+  logo          String?
+  plan          String   @default("BASIC") // BASIC | PRO
+  maxStudents   Int      @default(100)
+  maxTeachers   Int      @default(20)
+  academicYear  String   @default("2025-2026")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  users           User[]
+  students        Student[]
+  classes         SchoolClass[]
+  subjects        Subject[]
+  announcements   Announcement[]
+  feeRecords      FeeRecord[]
+  timetableSlots  TimetableSlot[]
+}
+
+// ─────────────────────────────────────────────────────────────
+// USER: Staff members (Manager & Teacher) - NO student access
+// Roles: SUPER_ADMIN | MANAGER | TEACHER
+// ─────────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  avatar    String?
+  role      String   @default("TEACHER") // SUPER_ADMIN | MANAGER | TEACHER
+  schoolId  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  school            School?          @relation(fields: [schoolId], references: [id])
+  classAssignments  ClassTeacher[]
+  grades            Grade[]
+  attendanceMarks   AttendanceRecord[]
+  timetableSlots    TimetableSlot[]
+  sentMessages      Message[]        @relation("MessageSender")
+  receivedMessages  Message[]        @relation("MessageReceiver")
+}
+
+// ─────────────────────────────────────────────────────────────
+// STUDENT: Student records managed by teachers & managers
+// ─────────────────────────────────────────────────────────────
+model Student {
+  id               String   @id @default(cuid())
+  studentId        String   // School-assigned enrollment number (e.g., "STU-2025-001")
+  firstName        String
+  lastName         String
+  dateOfBirth      String?  // ISO date string "YYYY-MM-DD" for SQLite compatibility
+  gender           String   @default("MALE") // MALE | FEMALE | OTHER
+  address          String?
+  phone            String?
+  email            String?
+  guardianName     String?
+  guardianPhone    String?
+  guardianRelation String?
+  avatar           String?
+  status           String   @default("ACTIVE") // ACTIVE | INACTIVE | GRADUATED | TRANSFERRED
+  schoolId         String
+  enrollDate       String   @default("2025-09-01")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  school            School            @relation(fields: [schoolId], references: [id])
+  enrollments       Enrollment[]
+  attendanceRecords AttendanceRecord[]
+  grades            Grade[]
+  feeRecords        FeeRecord[]
+}
+
+// ─────────────────────────────────────────────────────────────
+// CLASS: Organizational unit (e.g., "Grade 10 - Section A")
+// ─────────────────────────────────────────────────────────────
+model SchoolClass {
+  id         String   @id @default(cuid())
+  name       String   // Display name "Grade 10-A"
+  gradeLevel String   // Numeric grade "10"
+  section    String   // Section identifier "A"
+  room       String?
+  capacity   Int      @default(30)
+  schoolId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  school      School        @relation(fields: [schoolId], references: [id])
+  enrollments Enrollment[]
+  teachers    ClassTeacher[]
+  classSubjects ClassSubject[]
+  timetableSlots TimetableSlot[]
+  grades      Grade[]
+}
+
+// ─────────────────────────────────────────────────────────────
+// SUBJECT: Academic subject (e.g., "Mathematics")
+// ─────────────────────────────────────────────────────────────
+model Subject {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   // "MATH101"
+  description String?
+  schoolId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  school        School        @relation(fields: [schoolId], references: [id])
+  classSubjects ClassSubject[]
+  grades        Grade[]
+  timetableSlots TimetableSlot[]
+}
+
+// ─────────────────────────────────────────────────────────────
+// JUNCTION: Class <-> Teacher (Many-to-Many)
+// ─────────────────────────────────────────────────────────────
+model ClassTeacher {
+  id        String @id @default(cuid())
+  classId   String
+  teacherId String
+  schoolId  String
+
+  class     SchoolClass @relation(fields: [classId], references: [id])
+  teacher   User        @relation(fields: [teacherId], references: [id])
+
+  @@unique([classId, teacherId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// JUNCTION: Class <-> Subject (Many-to-Many)
+// ─────────────────────────────────────────────────────────────
+model ClassSubject {
+  id        String @id @default(cuid())
+  classId   String
+  subjectId String
+
+  class     SchoolClass @relation(fields: [classId], references: [id])
+  subject   Subject     @relation(fields: [subjectId], references: [id])
+
+  @@unique([classId, subjectId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// ENROLLMENT: Student <-> Class (Many-to-Many)
+// ─────────────────────────────────────────────────────────────
+model Enrollment {
+  id         String @id @default(cuid())
+  studentId  String
+  classId    String
+  enrollDate String @default("2025-09-01")
+  status     String @default("ACTIVE") // ACTIVE | WITHDRAWN
+
+  student    Student     @relation(fields: [studentId], references: [id])
+  class      SchoolClass @relation(fields: [classId], references: [id])
+
+  @@unique([studentId, classId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// ATTENDANCE: Daily attendance tracking per student per class
+// ─────────────────────────────────────────────────────────────
+model AttendanceRecord {
+  id        String   @id @default(cuid())
+  studentId String
+  classId   String
+  date      String   // ISO date "YYYY-MM-DD" for reliable unique constraint
+  status    String   @default("PRESENT") // PRESENT | ABSENT | LATE | EXCUSED
+  markedBy  String
+  notes     String?
+  createdAt DateTime @default(now())
+
+  student   Student   @relation(fields: [studentId], references: [id])
+  marker    User      @relation(fields: [markedBy], references: [id])
+
+  @@unique([studentId, classId, date])
+}
+
+// ─────────────────────────────────────────────────────────────
+// GRADE: Student grades per subject per assessment
+// ─────────────────────────────────────────────────────────────
+model Grade {
+  id         String   @id @default(cuid())
+  studentId  String
+  subjectId  String
+  classId    String
+  teacherId  String
+  term       String   @default("Term 1") // "Term 1" | "Term 2" | "Final"
+  type       String   @default("EXAM") // EXAM | QUIZ | ASSIGNMENT | PROJECT | PARTICIPATION
+  title      String   // "Midterm Exam" | "Chapter 3 Quiz"
+  score      Float
+  maxScore   Float    @default(100)
+  date       String   @default("2025-01-01")
+  comments   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student    Student     @relation(fields: [studentId], references: [id])
+  subject    Subject     @relation(fields: [subjectId], references: [id])
+  class      SchoolClass @relation(fields: [classId], references: [id])
+  teacher    User        @relation(fields: [teacherId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+// ANNOUNCEMENT: School-wide & class-wide announcements
+// ─────────────────────────────────────────────────────────────
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  priority  String   @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+  schoolId  String
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school    School @relation(fields: [schoolId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+// TIMETABLE: Weekly schedule slots
+// ─────────────────────────────────────────────────────────────
+model TimetableSlot {
+  id        String @id @default(cuid())
+  classId   String
+  subjectId String
+  teacherId String
+  dayOfWeek String   // MONDAY | TUESDAY | WEDNESDAY | THURSDAY | FRIDAY | SATURDAY
+  startTime String   // "08:00"
+  endTime   String   // "09:00"
+  schoolId  String
+
+  school    School      @relation(fields: [schoolId], references: [id])
+  class     SchoolClass @relation(fields: [classId], references: [id])
+  subject   Subject     @relation(fields: [subjectId], references: [id])
+  teacher   User        @relation(fields: [teacherId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+// FEE RECORD: Student fee tracking (PRO TIER ONLY)
+// ─────────────────────────────────────────────────────────────
+model FeeRecord {
+  id          String   @id @default(cuid())
+  studentId   String
+  title       String   // "Tuition Fee - Term 1"
+  amount      Float
+  dueDate     String?
+  status      String   @default("PENDING") // PENDING | PAID | OVERDUE | WAIVED
+  schoolId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student     Student   @relation(fields: [studentId], references: [id])
+  school      School    @relation(fields: [schoolId], references: [id])
+  payments    Payment[]
+}
+
+// ─────────────────────────────────────────────────────────────
+// PAYMENT: Fee payment records (PRO TIER ONLY)
+// ─────────────────────────────────────────────────────────────
+model Payment {
+  id          String   @id @default(cuid())
+  feeRecordId String
+  amount      Float
+  method      String   @default("CASH") // CASH | BANK_TRANSFER | ONLINE | CHEQUE
+  reference   String?
+  receivedBy  String
+  paidAt      String   @default("2025-01-01")
+  createdAt   DateTime @default(now())
+
+  feeRecord   FeeRecord @relation(fields: [feeRecordId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+// MESSAGE: Internal messaging between staff members
+// ─────────────────────────────────────────────────────────────
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  subject    String
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id])
+  receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id])
+}

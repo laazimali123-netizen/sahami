@@ -1,0 +1,148 @@
+// ═══════════════════════════════════════════════════════════
+// SAHAMI - Authentication & Authorization Utilities
+// JWT-free session management using secure tokens
+// ═══════════════════════════════════════════════════════════
+
+import bcrypt from 'bcryptjs';
+import { db } from './db';
+
+const SESSION_COOKIE_NAME = 'sahami_session';
+
+/** Hash a plaintext password using bcrypt (10 salt rounds) */
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+/** Verify a plaintext password against a stored hash */
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+
+/** Generate a cryptographically random session token */
+export function generateSessionToken(): string {
+  const array = new Uint8Array(32);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(array);
+  } else {
+    for (let i = 0; i < 32; i++) {
+      array[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Session data shape stored in cookie */
+export interface SessionData {
+  userId: string;
+  email: string;
+  name: string;
+  role: 'SUPER_ADMIN' | 'MANAGER' | 'TEACHER';
+  schoolId: string | null;
+  schoolName: string | null;
+  schoolPlan: string | null;
+}
+
+/** Role hierarchy for permission checks */
+const ROLE_HIERARCHY: Record<string, number> = {
+  SUPER_ADMIN: 100,
+  MANAGER: 50,
+  TEACHER: 10,
+};
+
+/** Check if a user has at least the required role level */
+export function hasPermission(userRole: string, requiredRole: string): boolean {
+  return (ROLE_HIERARCHY[userRole] || 0) >= (ROLE_HIERARCHY[requiredRole] || 0);
+}
+
+/** Check if user can access a feature based on subscription plan */
+export function hasFeature(plan: string | null, feature: string): boolean {
+  const BASIC_FEATURES = [
+    'dashboard', 'students', 'teachers', 'classes', 'subjects',
+    'attendance', 'grades', 'timetable', 'announcements', 'settings',
+  ];
+  const PRO_ONLY_FEATURES = ['fees', 'payments', 'reports', 'messages'];
+
+  if (PRO_ONLY_FEATURES.includes(feature)) {
+    return plan === 'PRO';
+  }
+  return BASIC_FEATURES.includes(feature);
+}
+
+/** Parse session from cookie header */
+export function parseSession(cookieHeader: string | null): SessionData | null {
+  if (!cookieHeader) return null;
+
+  try {
+    const cookies: Record<string, string> = {};
+    cookieHeader.split(';').forEach((cookie) => {
+      const [key, ...rest] = cookie.trim().split('=');
+      if (key && rest.length > 0) {
+        cookies[key.trim()] = decodeURIComponent(rest.join('='));
+      }
+    });
+
+    const sessionStr = cookies[SESSION_COOKIE_NAME];
+    if (!sessionStr) return null;
+
+    // Session is base64 encoded JSON
+    const jsonStr = Buffer.from(sessionStr, 'base64').toString('utf-8');
+    return JSON.parse(jsonStr) as SessionData;
+  } catch {
+    return null;
+  }
+}
+
+/** Serialize session data to cookie value */
+export function serializeSession(session: SessionData): string {
+  const jsonStr = JSON.stringify(session);
+  return Buffer.from(jsonStr).encode ? Buffer.from(jsonStr).toString('base64') : Buffer.from(jsonStr).toString('base64');
+}
+
+/** Get session cookie header for response */
+export function getSessionCookie(session: SessionData): string {
+  const value = serializeSession(session);
+  return `${SESSION_COOKIE_NAME}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`;
+}
+
+/** Get cookie header to clear session */
+export function getClearSessionCookie(): string {
+  return `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+}
+
+/** Authenticate request and return session + user */
+export async function authenticateRequest(request: Request): Promise<{
+  session: SessionData;
+  user: Awaited<ReturnType<typeof db.user.findUnique>>;
+} | { error: Response }> {
+  const session = parseSession(request.headers.get('cookie'));
+
+  if (!session) {
+    return {
+      error: new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    };
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    include: { school: true },
+  });
+
+  if (!user || !user.isActive) {
+    return {
+      error: new Response(JSON.stringify({ error: 'Account deactivated' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Set-Cookie': getClearSessionCookie() },
+      }),
+    };
+  }
+
+  return { session, user };
+}
+
+/** Middleware: Require specific role for an endpoint */
+export function requireRole(session: SessionData, roles: string[]): boolean {
+  return roles.includes(session.role);
+}
