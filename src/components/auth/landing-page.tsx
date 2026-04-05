@@ -97,7 +97,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-2 border-white/30 text-white hover:bg-white/10 hover:text-white font-semibold text-lg px-8 py-6 backdrop-blur-sm"
+                className="border-2 border-white/40 text-white bg-white/5 hover:bg-white hover:text-emerald-700 font-semibold text-lg px-8 py-6 backdrop-blur-sm transition-all duration-300"
                 onClick={() => navigate('login')}
               >
                 Sign In

@@ -39,7 +39,12 @@ export type AppView =
   | 'fee-form'
   | 'reports'
   | 'settings'
-  | 'subscription';
+  | 'subscription'
+  | 'admin-dashboard'
+  | 'admin-schools'
+  | 'admin-school-create'
+  | 'admin-school-detail'
+  | 'admin-employees';
 
 export interface SessionData {
   userId: string;

@@ -28,19 +28,19 @@ import FeeList from '@/components/fees/fee-list';
 import FeeForm from '@/components/fees/fee-form';
 import SettingsView from '@/components/settings/settings-view';
 import ReportsView from '@/components/reports/reports-view';
-import { GraduationCap } from 'lucide-react';
+// Admin views
+import AdminDashboard from '@/components/admin/admin-dashboard';
+import AdminSchools from '@/components/admin/admin-schools';
+import AdminSchoolCreate from '@/components/admin/admin-school-create';
+import AdminSchoolDetail from '@/components/admin/admin-school-detail';
+import AdminEmployees from '@/components/admin/admin-employees';
 import { useEffect } from 'react';
 
 // Lazy wrapper for PRO-only features
-function ProGuard({ children, view }: { children: React.ReactNode; view: string }) {
+function ProGuard({ children }: { children: React.ReactNode }) {
   const session = useStore((s) => s.session);
-  const navigate = useStore((s) => s.navigate);
   const isPro = session?.schoolPlan === 'PRO';
-
-  if (!isPro) {
-    return <ReportsView />; // ReportsView already has the PRO guard
-  }
-
+  if (!isPro) return <ReportsView />;
   return <>{children}</>;
 }
 
@@ -49,12 +49,12 @@ export default function Home() {
   const isAuthenticated = useStore((s) => s.isAuthenticated);
   const session = useStore((s) => s.session);
 
-  // On mount, check if we have a stored session but no dashboard data loaded
+  // On mount, redirect authenticated users to the right dashboard
   useEffect(() => {
-    if (isAuthenticated && currentView === 'landing') {
-      useStore.getState().navigate('dashboard');
+    if (isAuthenticated && session && currentView === 'landing') {
+      useStore.getState().navigate(session.role === 'SUPER_ADMIN' ? 'admin-dashboard' : 'dashboard');
     }
-  }, [isAuthenticated, currentView]);
+  }, [isAuthenticated, currentView, session]);
 
   // Auth pages (no app shell)
   if (!isAuthenticated || !session) {
@@ -69,8 +69,29 @@ export default function Home() {
     }
   }
 
-  // Authenticated app views
+  // SUPER_ADMIN gets admin views, school users get school views
+  const isAdmin = session.role === 'SUPER_ADMIN';
+
   const renderView = () => {
+    if (isAdmin) {
+      // Admin routing
+      switch (currentView) {
+        case 'admin-dashboard':
+          return <AdminDashboard />;
+        case 'admin-schools':
+          return <AdminSchools />;
+        case 'admin-school-create':
+          return <AdminSchoolCreate />;
+        case 'admin-school-detail':
+          return <AdminSchoolDetail />;
+        case 'admin-employees':
+          return <AdminEmployees />;
+        default:
+          return <AdminDashboard />;
+      }
+    }
+
+    // School user routing
     switch (currentView) {
       case 'dashboard':
         return <DashboardView />;
@@ -107,13 +128,13 @@ export default function Home() {
       case 'announcement-form':
         return <AnnouncementForm />;
       case 'messages':
-        return <ProGuard view="messages"><MessageList /></ProGuard>;
+        return <ProGuard><MessageList /></ProGuard>;
       case 'message-compose':
-        return <ProGuard view="messages"><MessageCompose /></ProGuard>;
+        return <ProGuard><MessageCompose /></ProGuard>;
       case 'fees':
-        return <ProGuard view="fees"><FeeList /></ProGuard>;
+        return <ProGuard><FeeList /></ProGuard>;
       case 'fee-form':
-        return <ProGuard view="fees"><FeeForm /></ProGuard>;
+        return <ProGuard><FeeForm /></ProGuard>;
       case 'reports':
         return <ReportsView />;
       case 'settings':

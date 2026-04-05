@@ -15,12 +15,16 @@ export async function POST(request: NextRequest) {
       schoolEmail,
       managerName,
       managerEmail,
+      email,
       password,
       plan,
     } = body;
 
+    // Accept either 'email' (from frontend form) or 'managerEmail'
+    const finalEmail = managerEmail || email;
+
     // Validate required fields
-    if (!schoolName || !managerName || !managerEmail || !password) {
+    if (!schoolName || !managerName || !finalEmail || !password) {
       return new Response(JSON.stringify({ error: 'All fields are required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -37,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Check if email already exists
     const existingUser = await db.user.findUnique({
-      where: { email: managerEmail.toLowerCase().trim() },
+      where: { email: finalEmail.toLowerCase().trim() },
     });
 
     if (existingUser) {
@@ -64,7 +68,7 @@ export async function POST(request: NextRequest) {
     // Create manager user
     const user = await db.user.create({
       data: {
-        email: managerEmail.toLowerCase().trim(),
+        email: finalEmail.toLowerCase().trim(),
         password: hashedPassword,
         name: managerName,
         role: 'MANAGER',
@@ -85,8 +89,8 @@ export async function POST(request: NextRequest) {
 
     return new Response(JSON.stringify({
       success: true,
-      user: {
-        id: user.id,
+      session: {
+        userId: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
