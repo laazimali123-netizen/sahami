@@ -1,12 +1,14 @@
 // ═══════════════════════════════════════════════════════════
 // SAHAMI - Admin: List All Users (Super Admin)
 // GET /api/admin/users - List all users across all schools
-// POST /api/admin/users - Create employee (admin user or school manager)
+// POST /api/admin/users - Create employee
 // ═══════════════════════════════════════════════════════════
 
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { authenticateRequest, hashPassword } from '@/lib/auth';
+
+const VALID_ROLES = ['SUPER_ADMIN', 'OWNER', 'MANAGER', 'TEACHER', 'FINANCE'];
 
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request);
@@ -44,15 +46,24 @@ export async function GET(request: NextRequest) {
     take: 100,
   });
 
-  // Also get counts by role
+  // Role counts
   const totalUsers = await db.user.count();
   const totalAdmins = await db.user.count({ where: { role: 'SUPER_ADMIN' } });
+  const totalOwners = await db.user.count({ where: { role: 'OWNER' } });
   const totalManagers = await db.user.count({ where: { role: 'MANAGER' } });
   const totalTeachers = await db.user.count({ where: { role: 'TEACHER' } });
+  const totalFinance = await db.user.count({ where: { role: 'FINANCE' } });
 
   return new Response(JSON.stringify({
     users,
-    counts: { total: totalUsers, admins: totalAdmins, managers: totalManagers, teachers: totalTeachers },
+    counts: {
+      total: totalUsers,
+      admins: totalAdmins,
+      owners: totalOwners,
+      managers: totalManagers,
+      teachers: totalTeachers,
+      finance: totalFinance,
+    },
   }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
@@ -74,39 +85,68 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, email, password, role, schoolId } = body;
 
-    if (!name || !email || !password || !role) {
-      return new Response(JSON.stringify({ error: 'Name, email, password, and role are required' }), {
+    if (!name || !name.trim()) {
+      return new Response(JSON.stringify({ error: 'Name is required.' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // Validate role
-    if (!['SUPER_ADMIN', 'MANAGER', 'TEACHER'].includes(role)) {
-      return new Response(JSON.stringify({ error: 'Invalid role' }), {
+    if (!email || !email.trim()) {
+      return new Response(JSON.stringify({ error: 'Email is required.' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    if (!password || password.length < 6) {
+      return new Response(JSON.stringify({ error: 'Password must be at least 6 characters.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!role || !VALID_ROLES.includes(role)) {
+      return new Response(JSON.stringify({ error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Check if email exists
-    const existing = await db.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+    const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
-      return new Response(JSON.stringify({ error: 'Email already exists' }), {
+      return new Response(JSON.stringify({
+        error: `The email "${normalizedEmail}" is already registered to "${existing.name}" (${existing.role}). Please use a different email address.`,
+        field: 'email',
+      }), {
         status: 409,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    // Validate school assignment
+    if (schoolId && schoolId !== 'none') {
+      const schoolExists = await db.school.findUnique({ where: { id: schoolId } });
+      if (!schoolExists) {
+        return new Response(JSON.stringify({ error: 'Selected school not found.' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     const hashedPassword = await hashPassword(password);
 
     const user = await db.user.create({
       data: {
-        name,
-        email: email.toLowerCase().trim(),
+        name: name.trim(),
+        email: normalizedEmail,
         password: hashedPassword,
         role,
-        schoolId: schoolId || null,
+        schoolId: (schoolId && schoolId !== 'none') ? schoolId : null,
       },
       include: {
         school: { select: { id: true, name: true } },
@@ -119,7 +159,18 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Create employee error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+
+    if (error.code === 'P2002') {
+      return new Response(JSON.stringify({
+        error: 'This email is already taken. Please use a different email address.',
+        field: 'email',
+      }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: 'Internal server error. Please try again.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

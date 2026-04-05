@@ -42,8 +42,12 @@ model School {
 }
 
 // ─────────────────────────────────────────────────────────────
-// USER: Staff members (Manager & Teacher) - NO student access
-// Roles: SUPER_ADMIN | MANAGER | TEACHER
+// USER: Staff members - NO student access
+// Roles: SUPER_ADMIN | OWNER | MANAGER | TEACHER | FINANCE
+// OWNER = school creator (full school admin rights)
+// MANAGER = school staff with management rights
+// TEACHER = teaches classes, marks attendance/grades
+// FINANCE = handles fees/payments (PRO only)
 // ─────────────────────────────────────────────────────────────
 model User {
   id        String   @id @default(cuid())
@@ -52,7 +56,7 @@ model User {
   name      String
   phone     String?
   avatar    String?
-  role      String   @default("TEACHER") // SUPER_ADMIN | MANAGER | TEACHER
+  role      String   @default("TEACHER") // SUPER_ADMIN | OWNER | MANAGER | TEACHER | FINANCE
   schoolId  String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())

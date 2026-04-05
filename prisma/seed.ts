@@ -57,11 +57,11 @@ async function main() {
       password: await hashPassword('manager123'),
       name: 'Dr. Fatima Al-Hassan',
       phone: '+1 (555) 111-2222',
-      role: 'MANAGER',
+      role: 'OWNER',
       schoolId: school.id,
     },
   });
-  console.log(`✅ Manager: ${manager.email} / manager123`);
+  console.log(`✅ Owner: ${manager.email} / manager123`);
 
   const teachers = [];
   const teacherData = [
@@ -92,6 +92,22 @@ async function main() {
     teachers.push(teacher);
   }
   console.log(`✅ Teachers created: ${teachers.length} (password: teacher123)`);
+
+  // ─── Create Finance Staff ───
+  const financeStaff = await prisma.user.upsert({
+    where: { email: 'finance@alnoor.edu' },
+    update: {},
+    create: {
+      id: 'finance_001',
+      email: 'finance@alnoor.edu',
+      password: await hashPassword('finance123'),
+      name: 'Mr. Hassan Accounting',
+      phone: '+1 (555) 111-3333',
+      role: 'FINANCE',
+      schoolId: school.id,
+    },
+  });
+  console.log(`✅ Finance Staff: ${financeStaff.email} / finance123`);
 
   // ─── Create Subjects ───
   const subjectData = [
@@ -435,8 +451,9 @@ async function main() {
   console.log('\n🎉 SAHAMI database seeded successfully!');
   console.log('\n📋 Demo Credentials:');
   console.log('   Super Admin:  admin@sahami.com / admin123');
-  console.log('   Manager:      manager@alnoor.edu / manager123');
+  console.log('   Owner:        manager@alnoor.edu / manager123');
   console.log('   Teacher:      james.wilson@alnoor.edu / teacher123');
+  console.log('   Finance:      finance@alnoor.edu / finance123');
   console.log('   (Any teacher email / teacher123)\n');
 }
 

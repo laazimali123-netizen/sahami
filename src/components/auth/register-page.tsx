@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useStore, type SubscriptionPlan } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function RegisterPage() {
@@ -20,37 +20,109 @@ export default function RegisterPage() {
     managerName: '',
     email: '',
     password: '',
+    confirmPassword: '',
     plan: (viewParams.plan || 'BASIC') as SubscriptionPlan,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    if (field === 'email') {
+      setEmailStatus('idle');
+    }
+  };
+
+  // Real-time email duplicate check
+  const checkEmailAvailability = useCallback(async (email: string) => {
+    if (!email || !email.includes('@') || email.length < 5) {
+      setEmailStatus('idle');
+      return;
+    }
+    setEmailStatus('checking');
+    try {
+      const res = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEmailStatus(data.available ? 'available' : 'taken');
+      } else {
+        setEmailStatus('idle');
+      }
+    } catch {
+      setEmailStatus('idle');
+    }
+  }, []);
+
+  const handleEmailBlur = () => {
+    if (form.email) {
+      checkEmailAvailability(form.email);
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation
+    if (!form.schoolName.trim()) {
+      toast.error('School name is required');
+      return;
+    }
+    if (!form.managerName.trim()) {
+      toast.error('Your full name is required');
+      return;
+    }
+    if (!form.email.trim() || !form.email.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
     if (form.password.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;
     }
+    if (form.password !== form.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    if (emailStatus === 'taken') {
+      toast.error('This email is already registered. Please use a different email or sign in.');
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          schoolName: form.schoolName.trim(),
+          managerName: form.managerName.trim(),
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
+          plan: form.plan,
+        }),
       });
       const data = await res.json();
+
       if (!res.ok) {
-        toast.error(data.error || 'Registration failed');
+        // Handle duplicate email from server
+        if (res.status === 409) {
+          setEmailStatus('taken');
+          toast.error(data.error || 'This email is already taken. Please use a different email address to register.');
+        } else {
+          toast.error(data.error || 'Registration failed. Please try again.');
+        }
         return;
       }
+
       setSession(data.session);
-      toast.success('Account created successfully! Welcome to SAHAMI!');
+      toast.success('School created successfully! Welcome to SAHAMI!');
     } catch {
-      toast.error('Network error. Please try again.');
+      toast.error('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -71,9 +143,10 @@ export default function RegisterPage() {
           <form onSubmit={handleRegister}>
             <CardHeader className="pb-4">
               <CardTitle className="text-xl">Get Started</CardTitle>
-              <CardDescription>Set up your school in just a few steps</CardDescription>
+              <CardDescription>Set up your school in just a few steps. You will be the school owner.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* School Name */}
               <div className="space-y-2">
                 <Label htmlFor="schoolName">School Name</Label>
                 <Input
@@ -84,8 +157,10 @@ export default function RegisterPage() {
                   required
                 />
               </div>
+
+              {/* Manager Name */}
               <div className="space-y-2">
-                <Label htmlFor="managerName">Manager Name</Label>
+                <Label htmlFor="managerName">Your Full Name (School Owner)</Label>
                 <Input
                   id="managerName"
                   placeholder="John Smith"
@@ -94,17 +169,42 @@ export default function RegisterPage() {
                   required
                 />
               </div>
+
+              {/* Email with live validation */}
               <div className="space-y-2">
-                <Label htmlFor="regEmail">Email</Label>
-                <Input
-                  id="regEmail"
-                  type="email"
-                  placeholder="admin@school.com"
-                  value={form.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  required
-                />
+                <Label htmlFor="regEmail">Email Address</Label>
+                <div className="relative">
+                  <Input
+                    id="regEmail"
+                    type="email"
+                    placeholder="admin@school.com"
+                    value={form.email}
+                    onChange={(e) => handleChange('email', e.target.value)}
+                    onBlur={handleEmailBlur}
+                    required
+                    className={emailStatus === 'taken' ? 'border-red-500 focus-visible:ring-red-500' : emailStatus === 'available' ? 'border-emerald-500 focus-visible:ring-emerald-500' : ''}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {emailStatus === 'checking' && <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />}
+                    {emailStatus === 'available' && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                    {emailStatus === 'taken' && <XCircle className="h-4 w-4 text-red-500" />}
+                  </div>
+                </div>
+                {emailStatus === 'taken' && (
+                  <div className="flex items-center gap-2 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>This email is already registered. Please <button type="button" className="underline font-medium hover:text-red-700" onClick={() => navigate('login')}>sign in</button> or use a different email.</span>
+                  </div>
+                )}
+                {emailStatus === 'available' && (
+                  <div className="flex items-center gap-2 text-sm text-emerald-600">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    <span>This email is available!</span>
+                  </div>
+                )}
               </div>
+
+              {/* Password */}
               <div className="space-y-2">
                 <Label htmlFor="regPassword">Password</Label>
                 <div className="relative">
@@ -126,6 +226,26 @@ export default function RegisterPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-2">
+                <Label htmlFor="regConfirmPassword">Confirm Password</Label>
+                <Input
+                  id="regConfirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Re-enter your password"
+                  value={form.confirmPassword}
+                  onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                  required
+                  minLength={6}
+                  className={form.confirmPassword && form.confirmPassword !== form.password ? 'border-red-500' : ''}
+                />
+                {form.confirmPassword && form.confirmPassword !== form.password && (
+                  <p className="text-sm text-red-600">Passwords do not match</p>
+                )}
+              </div>
+
+              {/* Plan Selection */}
               <div className="space-y-2">
                 <Label>Subscription Plan</Label>
                 <Select value={form.plan} onValueChange={(v) => handleChange('plan', v)}>
@@ -133,16 +253,16 @@ export default function RegisterPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="BASIC">BASIC — Free</SelectItem>
-                    <SelectItem value="PRO">PRO — $29/month</SelectItem>
+                    <SelectItem value="BASIC">BASIC — Free (100 students, 20 teachers)</SelectItem>
+                    <SelectItem value="PRO">PRO — $29/month (500 students, 50 teachers + Finance & Messaging)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
-              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={loading}>
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold" disabled={loading || emailStatus === 'taken'}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Account
+                {loading ? 'Creating Your School...' : 'Create School Account'}
               </Button>
               <p className="text-sm text-muted-foreground">
                 Already have an account?{' '}

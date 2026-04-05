@@ -40,13 +40,15 @@ interface Employee {
 interface RoleCounts {
   total: number;
   admins: number;
+  owners: number;
   managers: number;
   teachers: number;
+  finance: number;
 }
 
 export default function AdminEmployees() {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [counts, setCounts] = useState<RoleCounts>({ total: 0, admins: 0, managers: 0, teachers: 0 });
+  const [counts, setCounts] = useState<RoleCounts>({ total: 0, admins: 0, owners: 0, managers: 0, teachers: 0, finance: 0 });
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,7 @@ export default function AdminEmployees() {
       if (usersRes.ok) {
         const data = await usersRes.json();
         setEmployees(data.users || []);
-        setCounts(data.counts || { total: 0, admins: 0, managers: 0, teachers: 0 });
+        setCounts(data.counts || { total: 0, admins: 0, owners: 0, managers: 0, teachers: 0, finance: 0 });
       }
       if (schoolsRes.ok) {
         const sData = await schoolsRes.json();
@@ -144,8 +146,10 @@ export default function AdminEmployees() {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'SUPER_ADMIN': return <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px]"><Shield className="h-3 w-3 mr-1" /> SUPER ADMIN</Badge>;
-      case 'MANAGER': return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px]">MANAGER</Badge>;
-      case 'TEACHER': return <Badge className="bg-teal-100 text-teal-700 border-teal-200 text-[10px]">TEACHER</Badge>;
+      case 'OWNER': return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px]"><Shield className="h-3 w-3 mr-1" /> OWNER</Badge>;
+      case 'MANAGER': return <Badge className="bg-teal-100 text-teal-700 border-teal-200 text-[10px]">MANAGER</Badge>;
+      case 'TEACHER': return <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px]">TEACHER</Badge>;
+      case 'FINANCE': return <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[10px]">FINANCE</Badge>;
       default: return <Badge variant="secondary" className="text-[10px]">{role}</Badge>;
     }
   };
@@ -177,12 +181,14 @@ export default function AdminEmployees() {
       </div>
 
       {/* Role Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
           { label: 'All Users', value: counts.total, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Super Admins', value: counts.admins, icon: Shield, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Owners', value: counts.owners, icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Managers', value: counts.managers, icon: Building2, color: 'text-teal-600', bg: 'bg-teal-50' },
-          { label: 'Teachers', value: counts.teachers, icon: GraduationCap, color: 'text-violet-600', bg: 'bg-violet-50' },
+          { label: 'Teachers', value: counts.teachers, icon: GraduationCap, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Finance', value: counts.finance, icon: DollarSign, color: 'text-purple-600', bg: 'bg-purple-50' },
         ].map((stat) => (
           <Card key={stat.label}>
             <CardContent className="p-4 flex items-center gap-3">
@@ -216,8 +222,10 @@ export default function AdminEmployees() {
           <SelectContent>
             <SelectItem value="ALL">All Roles</SelectItem>
             <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+            <SelectItem value="OWNER">Owner</SelectItem>
             <SelectItem value="MANAGER">Manager</SelectItem>
             <SelectItem value="TEACHER">Teacher</SelectItem>
+            <SelectItem value="FINANCE">Finance</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -230,8 +238,10 @@ export default function AdminEmployees() {
               <div className="flex items-center gap-4">
                 <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${
                   emp.role === 'SUPER_ADMIN' ? 'bg-amber-600'
-                  : emp.role === 'MANAGER' ? 'bg-emerald-600'
-                  : 'bg-teal-600'
+                  : emp.role === 'OWNER' ? 'bg-emerald-600'
+                  : emp.role === 'MANAGER' ? 'bg-teal-600'
+                  : emp.role === 'FINANCE' ? 'bg-purple-600'
+                  : 'bg-blue-600'
                 }`}>
                   {emp.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </div>
@@ -306,8 +316,10 @@ export default function AdminEmployees() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                    <SelectItem value="OWNER">Owner (School Creator)</SelectItem>
                     <SelectItem value="MANAGER">Manager</SelectItem>
                     <SelectItem value="TEACHER">Teacher</SelectItem>
+                    <SelectItem value="FINANCE">Finance Staff</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -362,8 +374,10 @@ export default function AdminEmployees() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                    <SelectItem value="OWNER">Owner</SelectItem>
                     <SelectItem value="MANAGER">Manager</SelectItem>
                     <SelectItem value="TEACHER">Teacher</SelectItem>
+                    <SelectItem value="FINANCE">Finance Staff</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

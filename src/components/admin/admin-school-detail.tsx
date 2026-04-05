@@ -300,7 +300,10 @@ export default function AdminSchoolDetail() {
               <div key={user.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className={`h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                    user.role === 'MANAGER' ? 'bg-emerald-600' : 'bg-teal-600'
+                    user.role === 'OWNER' ? 'bg-emerald-600'
+                    : user.role === 'MANAGER' ? 'bg-teal-600'
+                    : user.role === 'FINANCE' ? 'bg-purple-600'
+                    : 'bg-blue-600'
                   }`}>
                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
@@ -310,7 +313,7 @@ export default function AdminSchoolDetail() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={user.role === 'MANAGER' ? 'default' : 'secondary'} className="text-xs">
+                  <Badge variant={['OWNER', 'MANAGER'].includes(user.role) ? 'default' : 'secondary'} className="text-xs">
                     {user.role}
                   </Badge>
                   {!user.isActive && <Badge variant="outline" className="text-xs text-red-500">Inactive</Badge>}

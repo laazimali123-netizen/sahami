@@ -27,7 +27,7 @@ interface NavItem {
   pro?: boolean;
 }
 
-// Navigation for school users (MANAGER, TEACHER)
+// Navigation for school users (OWNER, MANAGER, TEACHER, FINANCE)
 const schoolNav: NavItem[] = [
   { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { view: 'students', label: 'Students', icon: GraduationCap },
@@ -41,6 +41,12 @@ const schoolNav: NavItem[] = [
   { view: 'messages', label: 'Messages', icon: MessageSquare, pro: true },
   { view: 'fees', label: 'Finance', icon: DollarSign, pro: true },
   { view: 'reports', label: 'Reports', icon: PieChart, pro: true },
+];
+
+// Navigation for FINANCE role (limited to finance only)
+const financeNav: NavItem[] = [
+  { view: 'fees', label: 'Fee Management', icon: DollarSign },
+  { view: 'reports', label: 'Reports', icon: PieChart },
 ];
 
 // Navigation for SUPER_ADMIN (platform admin)
@@ -60,14 +66,17 @@ export default function Sidebar() {
   const unreadMessages = useStore((s) => s.messages.filter(m => !m.isRead).length);
 
   const isAdmin = session?.role === 'SUPER_ADMIN';
+  const isOwner = session?.role === 'OWNER';
+  const isFinance = session?.role === 'FINANCE';
   const isPro = session?.schoolPlan === 'PRO';
   const initials = session?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
 
   // Pick the right nav based on role
-  const navItems = isAdmin ? adminNav : schoolNav;
+  const navItems = isAdmin ? adminNav : isFinance ? financeNav : schoolNav;
 
   const handleNav = (item: NavItem) => {
-    if (item.pro && !isPro) return;
+    // FINANCE role has full access to finance regardless of pro
+    if (item.pro && !isPro && !isFinance) return;
     navigate(item.view);
     // Close sidebar on mobile
     if (window.innerWidth < 1024) {
@@ -90,6 +99,13 @@ export default function Sidebar() {
       'admin-schools': ['admin-school-create', 'admin-school-detail'],
     };
     return subViewMap[view]?.includes(currentView) || false;
+  };
+
+  // Determine which nav items should be locked
+  const isLocked = (item: NavItem) => {
+    // FINANCE role has access to all finance features
+    if (isFinance && item.pro) return false;
+    return item.pro && !isPro;
   };
 
   return (
@@ -140,7 +156,7 @@ export default function Sidebar() {
           <nav className="space-y-1">
             {navItems.map((item) => {
               const active = isActive(item.view);
-              const isLocked = item.pro && !isPro;
+              const locked = isLocked(item);
 
               const button = (
                 <button
@@ -148,21 +164,24 @@ export default function Sidebar() {
                   onClick={() => handleNav(item)}
                   className={cn(
                     'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-                    active && !isLocked
+                    active && !locked
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : isLocked
+                      : locked
                         ? 'text-sidebar-foreground/30 cursor-not-allowed'
                         : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
                   )}
                 >
-                  <item.icon className={cn('h-5 w-5 shrink-0', active && !isLocked && 'text-emerald-400')} />
+                  <item.icon className={cn('h-5 w-5 shrink-0', active && !locked && 'text-emerald-400')} />
                   {sidebarOpen && (
                     <span className="flex-1 text-left truncate">{item.label}</span>
                   )}
                   {sidebarOpen && isAdmin && (
                     <Shield className="h-3 w-3 text-amber-400 opacity-60" />
                   )}
-                  {sidebarOpen && item.pro && (
+                  {sidebarOpen && isOwner && (
+                    <Shield className="h-3 w-3 text-emerald-400 opacity-60" />
+                  )}
+                  {sidebarOpen && item.pro && !locked && (
                     <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-[10px] px-1.5 py-0">
                       PRO
                     </Badge>
@@ -183,7 +202,7 @@ export default function Sidebar() {
                     </TooltipTrigger>
                     <TooltipContent side="right" className="flex items-center gap-2">
                       {item.label}
-                      {isLocked && <ShieldCheck className="h-3 w-3 text-amber-400" />}
+                      {locked && <ShieldCheck className="h-3 w-3 text-amber-400" />}
                     </TooltipContent>
                   </Tooltip>
                 );
@@ -217,7 +236,7 @@ export default function Sidebar() {
               <div className="flex items-center gap-3">
                 <div className={cn(
                   'h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0',
-                  isAdmin ? 'bg-amber-600' : 'bg-emerald-600',
+                  isAdmin ? 'bg-amber-600' : isOwner ? 'bg-emerald-600' : isFinance ? 'bg-blue-600' : 'bg-teal-600',
                 )}>
                   {initials}
                 </div>
@@ -230,10 +249,18 @@ export default function Sidebar() {
                 'mt-2 text-[10px] w-full justify-center border-0',
                 isAdmin
                   ? 'bg-amber-500/20 text-amber-300'
-                  : 'bg-emerald-500/20 text-emerald-300',
+                  : isOwner
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : isFinance
+                      ? 'bg-blue-500/20 text-blue-300'
+                      : 'bg-teal-500/20 text-teal-300',
               )}>
                 {isAdmin ? (
                   <><Shield className="h-3 w-3 mr-1" /> SUPER ADMIN</>
+                ) : isOwner ? (
+                  <><Shield className="h-3 w-3 mr-1" /> OWNER</>
+                ) : isFinance ? (
+                  <><DollarSign className="h-3 w-3 mr-1" /> FINANCE</>
                 ) : session.schoolPlan ? (
                   <><Sparkles className="h-3 w-3 mr-1" /> {session.schoolPlan} Plan</>
                 ) : null}

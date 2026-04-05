@@ -52,7 +52,13 @@ export default function Home() {
   // On mount, redirect authenticated users to the right dashboard
   useEffect(() => {
     if (isAuthenticated && session && currentView === 'landing') {
-      useStore.getState().navigate(session.role === 'SUPER_ADMIN' ? 'admin-dashboard' : 'dashboard');
+      if (session.role === 'SUPER_ADMIN') {
+        useStore.getState().navigate('admin-dashboard');
+      } else if (session.role === 'FINANCE') {
+        useStore.getState().navigate('fees');
+      } else {
+        useStore.getState().navigate('dashboard');
+      }
     }
   }, [isAuthenticated, currentView, session]);
 
@@ -71,6 +77,7 @@ export default function Home() {
 
   // SUPER_ADMIN gets admin views, school users get school views
   const isAdmin = session.role === 'SUPER_ADMIN';
+  const isFinance = session.role === 'FINANCE';
 
   const renderView = () => {
     if (isAdmin) {

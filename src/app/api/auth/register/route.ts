@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// SAHAMI - Auth: Register (create new school + manager account)
+// SAHAMI - Auth: Register (create new school + owner account)
 // POST /api/auth/register
 // ═══════════════════════════════════════════════════════════
 
@@ -21,11 +21,40 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Accept either 'email' (from frontend form) or 'managerEmail'
-    const finalEmail = managerEmail || email;
+    const finalEmail = (managerEmail || email || '').toLowerCase().trim();
 
     // Validate required fields
-    if (!schoolName || !managerName || !finalEmail || !password) {
-      return new Response(JSON.stringify({ error: 'All fields are required' }), {
+    if (!schoolName || !schoolName.trim()) {
+      return new Response(JSON.stringify({ error: 'School name is required. Please enter a name for your school.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!managerName || !managerName.trim()) {
+      return new Response(JSON.stringify({ error: 'Your full name is required.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!finalEmail) {
+      return new Response(JSON.stringify({ error: 'Email address is required.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Basic email validation
+    if (!finalEmail.includes('@') || !finalEmail.includes('.')) {
+      return new Response(JSON.stringify({ error: 'Please enter a valid email address (e.g., admin@school.com).' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!password) {
+      return new Response(JSON.stringify({ error: 'Password is required.' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -33,19 +62,22 @@ export async function POST(request: NextRequest) {
 
     // Validate password length
     if (password.length < 6) {
-      return new Response(JSON.stringify({ error: 'Password must be at least 6 characters' }), {
+      return new Response(JSON.stringify({ error: 'Password must be at least 6 characters long.' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // Check if email already exists
+    // Check if email already exists - with helpful error message
     const existingUser = await db.user.findUnique({
-      where: { email: finalEmail.toLowerCase().trim() },
+      where: { email: finalEmail },
     });
 
     if (existingUser) {
-      return new Response(JSON.stringify({ error: 'An account with this email already exists' }), {
+      return new Response(JSON.stringify({
+        error: `This email (${finalEmail}) is already registered. Please sign in to your existing account, or use a different email address to register a new school.`,
+        field: 'email',
+      }), {
         status: 409,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -57,7 +89,7 @@ export async function POST(request: NextRequest) {
     // Create school
     const school = await db.school.create({
       data: {
-        name: schoolName,
+        name: schoolName.trim(),
         email: schoolEmail || null,
         plan: plan || 'BASIC',
         maxStudents: plan === 'PRO' ? 500 : 100,
@@ -65,13 +97,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create manager user
+    // Create OWNER user (the school creator is always the owner)
     const user = await db.user.create({
       data: {
-        email: finalEmail.toLowerCase().trim(),
+        email: finalEmail,
         password: hashedPassword,
-        name: managerName,
-        role: 'MANAGER',
+        name: managerName.trim(),
+        role: 'OWNER',
         schoolId: school.id,
       },
     });
@@ -89,6 +121,7 @@ export async function POST(request: NextRequest) {
 
     return new Response(JSON.stringify({
       success: true,
+      message: `School "${school.name}" created! You are the owner.`,
       session: {
         userId: user.id,
         email: user.email,
@@ -107,7 +140,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Registration error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+
+    // Handle Prisma unique constraint violation
+    if (error.code === 'P2002') {
+      return new Response(JSON.stringify({
+        error: 'This email is already taken. Please use a different email address.',
+        field: 'email',
+      }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: 'Internal server error. Please try again.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

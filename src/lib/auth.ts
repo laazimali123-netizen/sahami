@@ -36,7 +36,7 @@ export interface SessionData {
   userId: string;
   email: string;
   name: string;
-  role: 'SUPER_ADMIN' | 'MANAGER' | 'TEACHER';
+  role: 'SUPER_ADMIN' | 'OWNER' | 'MANAGER' | 'TEACHER' | 'FINANCE';
   schoolId: string | null;
   schoolName: string | null;
   schoolPlan: string | null;
@@ -45,7 +45,9 @@ export interface SessionData {
 /** Role hierarchy for permission checks */
 const ROLE_HIERARCHY: Record<string, number> = {
   SUPER_ADMIN: 100,
+  OWNER: 80,
   MANAGER: 50,
+  FINANCE: 40,
   TEACHER: 10,
 };
 

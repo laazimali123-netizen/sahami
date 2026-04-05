@@ -9,7 +9,7 @@ import { create } from 'zustand';
 // TYPES
 // ─────────────────────────────────────────────────────────────
 
-export type UserRole = 'SUPER_ADMIN' | 'MANAGER' | 'TEACHER';
+export type UserRole = 'SUPER_ADMIN' | 'OWNER' | 'MANAGER' | 'TEACHER' | 'FINANCE';
 export type SubscriptionPlan = 'BASIC' | 'PRO';
 export type AppView =
   | 'landing'
@@ -321,10 +321,23 @@ export const useStore = create<SahamiStore>((set, get) => ({
         localStorage.removeItem('sahami_session');
       }
     }
+    // Navigate based on role
+    let targetView: AppView = 'dashboard';
+    if (session) {
+      if (session.role === 'SUPER_ADMIN') {
+        targetView = 'admin-dashboard';
+      } else if (session.role === 'FINANCE') {
+        targetView = 'fees';
+      } else {
+        targetView = 'dashboard';
+      }
+    } else {
+      targetView = 'landing';
+    }
     set({
       session,
       isAuthenticated: !!session,
-      currentView: session ? 'dashboard' : 'landing',
+      currentView: targetView,
     });
   },
 

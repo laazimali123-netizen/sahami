@@ -123,7 +123,7 @@ export default function AdminSchoolCreate() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Manager Account</CardTitle>
-            <CardDescription>Create the primary manager for this school</CardDescription>
+            <CardDescription>Create the primary owner/manager for this school</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
