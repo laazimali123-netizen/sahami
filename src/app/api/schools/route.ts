@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const existingUser = await db.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       return new Response(JSON.stringify({
-        error: `The email "${normalizedEmail}" is already registered to "${existing.name}" (${existing.role}). Please use a different email.`,
+        error: `The email "${normalizedEmail}" is already registered to "${existingUser.name}" (${existingUser.role}). Please use a different email.`,
         field: 'email',
       }), {
         status: 409,

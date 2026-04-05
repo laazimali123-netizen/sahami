@@ -9,7 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Building2, Loader2, ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface SchoolOption {
@@ -31,9 +31,9 @@ export default function AdminSchoolCreate() {
   };
 
   // Load existing schools for reference
-  useState(() => {
+  useEffect(() => {
     fetch('/api/schools').then(r => r.json()).then(d => setSchools(d.schools || [])).catch(() => {});
-  });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

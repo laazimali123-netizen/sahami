@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   UserCog, Plus, Search, MoreVertical, Pencil, Trash2, Shield,
-  Users, GraduationCap, Building2, Loader2, Mail,
+  Users, GraduationCap, Building2, Loader2, Mail, DollarSign,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
