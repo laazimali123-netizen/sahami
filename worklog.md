@@ -52,3 +52,32 @@ Stage Summary:
 - 4 bugs fixed: Sign In hover, existingUser ref, DollarSign import, useState→useEffect
 - Build: 0 errors, 28 API routes, 23 pages
 - Server PID running on port 3000
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Debug and fix persistent live preview - server keeps dying between tool invocations
+
+Work Log:
+- Discovered background Node.js processes get killed when Bash tool execution context ends
+- Tried multiple approaches: nohup, disown, setsid, keep-alive watchdog scripts — all failed
+- Discovered `.zscripts/` directory with proper dev.sh/build.sh/start.sh infrastructure
+- Ran `build.sh` to create proper packaged build at `/tmp/build_fullstack_test_build/`
+- Updated build with latest fixed standalone server, static assets, and public files
+- Started dev server via `bun run dev` which properly orphans the `next-server` child process
+- Server survived as orphan (PID 7276, parent PID 1/init) running for 3+ minutes
+- Full verification suite passed:
+  - Server process alive (3+ min uptime)
+  - Port 3000 direct: HTTP 200, 32KB HTML
+  - Port 81 Caddy proxy: HTTP 200, 32KB HTML
+  - Login API: admin@sahami.com → SUPER_ADMIN session
+  - Email check API: newuser@test.com → available
+  - Static assets: CSS, JS chunks, logo all HTTP 200
+  - Sign In button fix confirmed: `hover:border-emerald-600` present in served HTML
+- Created restart script at `.zscripts/restart.sh` for future use
+
+Stage Summary:
+- Root cause: background processes from Bash tool get killed when tool context ends
+- Solution: `bun run dev` properly orphans the next-server process via init adoption
+- Server running stably as PID 7276, verified through Caddy proxy on port 81
+- All fixes (Sign In hover, duplicate email, bug fixes) confirmed live in served content
