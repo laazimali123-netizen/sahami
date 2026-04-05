@@ -25,7 +25,7 @@ import {
 import {
   UserPlus, Users, Search, Mail, Phone, Shield,
   CheckCircle2, XCircle, GraduationCap, ClipboardCheck,
-  BarChart3, UserCog,
+  BarChart3, UserCog, Eye, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -64,6 +64,7 @@ export default function StaffList() {
   const [createForm, setCreateForm] = useState({ name: '', email: '', password: '', role: 'TEACHER' });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
 
   useEffect(() => {
     loadStaff();
@@ -357,12 +358,21 @@ export default function StaffList() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Initial Password</label>
-              <Input
-                type="password"
-                placeholder="Minimum 6 characters"
-                value={createForm.password}
-                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-              />
+              <div className="relative">
+                <Input
+                  type={showStaffPassword ? 'text' : 'password'}
+                  placeholder="Set initial password (min 6 chars)"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowStaffPassword(!showStaffPassword)}
+                >
+                  {showStaffPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <p className="text-xs text-muted-foreground">Staff can change their password after first login.</p>
             </div>
 

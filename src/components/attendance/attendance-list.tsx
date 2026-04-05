@@ -13,7 +13,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { ClipboardCheck, Search } from 'lucide-react';
+import { ClipboardCheck, Search, Download } from 'lucide-react';
+import { exportToCSV } from '@/lib/csv-export';
 
 export default function AttendanceList() {
   const store = useStore();
@@ -67,9 +68,22 @@ export default function AttendanceList() {
           </Select>
           <Input type="date" className="w-40" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
         </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700 shrink-0" onClick={() => store.navigate('attendance-mark')}>
-          <ClipboardCheck className="h-4 w-4 mr-2" /> Mark Attendance
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={() => exportToCSV(
+            filtered.map(a => ({
+              'Date': a.date,
+              'Student': `${a.student?.firstName || ''} ${a.student?.lastName || ''}`,
+              'Status': a.status,
+              'Notes': a.notes || '',
+            })),
+            'attendance'
+          )}>
+            <Download className="h-4 w-4 mr-1" /> CSV
+          </Button>
+          <Button className="bg-emerald-600 hover:bg-emerald-700 shrink-0" onClick={() => store.navigate('attendance-mark')}>
+            <ClipboardCheck className="h-4 w-4 mr-2" /> Mark Attendance
+          </Button>
+        </div>
       </div>
 
       <Card>

@@ -8,13 +8,17 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog';
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import {
-  ArrowLeft, User, BookOpen, ClipboardCheck, DollarSign,
-  Mail, Phone, MapPin, Calendar, Users,
+  ArrowLeft, User, BookOpen, ClipboardCheck,
+  Mail, Phone, MapPin, Calendar, Users, FileText, Printer,
 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export default function StudentDetail() {
   const store = useStore();
@@ -23,6 +27,11 @@ export default function StudentDetail() {
   const [grades, setGrades] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Report card state
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [report, setReport] = useState<any>(null);
 
   useEffect(() => {
     async function load() {
@@ -44,6 +53,21 @@ export default function StudentDetail() {
     }
     if (studentId) load();
   }, [studentId]);
+
+  const loadReport = async () => {
+    setReportLoading(true);
+    try {
+      const res = await fetch(`/api/reports/student/${studentId}`);
+      const data = await res.json();
+      setReport(data);
+    } catch { /* empty */ } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   if (loading) {
     return <div className="space-y-4"><Skeleton className="h-40 w-full" /><Skeleton className="h-64 w-full" /></div>;
@@ -90,12 +114,126 @@ export default function StudentDetail() {
             </Badge>
           </div>
         </div>
-        <Button variant="outline" onClick={() => {
-          store.setSelectedStudentId(student.id);
-          store.navigate('student-form', { id: student.id });
-        }}>
-          Edit
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={reportOpen} onOpenChange={(open) => { setReportOpen(open); if (open) loadReport(); }}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <FileText className="h-4 w-4 mr-2" /> Report Card
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Student Report Card</DialogTitle>
+              </DialogHeader>
+              {reportLoading ? (
+                <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+              ) : report ? (
+                <div className="space-y-6">
+                  {/* Report Header */}
+                  <div className="text-center border-b pb-4">
+                    <h3 className="text-lg font-bold">Student Report Card</h3>
+                    <p className="text-sm text-muted-foreground">Academic Year 2025-2026</p>
+                  </div>
+
+                  {/* Student Info */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Name: </span>
+                      <span className="font-medium">{report.student.firstName} {report.student.lastName}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">ID: </span>
+                      <span className="font-medium">{report.student.studentId}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Class: </span>
+                      <span className="font-medium">{report.student.enrollments?.map((e: any) => e.class.name).join(', ') || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Attendance: </span>
+                      <span className="font-medium">{report.attendance.rate}%</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Class Rank: </span>
+                      <span className="font-medium">{report.classRank}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Overall Avg: </span>
+                      <Badge className={report.overallAverage >= 80 ? 'bg-emerald-100 text-emerald-700' : report.overallAverage >= 60 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}>
+                        {report.overallAverage}%
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Subject Grades */}
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Subject Performance</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Subject</TableHead>
+                          <TableHead>Average</TableHead>
+                          <TableHead>Grade</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {report.subjects.map((s: any, i: number) => {
+                          const letter = s.average >= 90 ? 'A' : s.average >= 80 ? 'B' : s.average >= 70 ? 'C' : s.average >= 60 ? 'D' : 'F';
+                          return (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">{s.subject.name}</TableCell>
+                              <TableCell>{s.average}%</TableCell>
+                              <TableCell>
+                                <Badge variant={letter === 'A' ? 'default' : letter === 'F' ? 'destructive' : 'secondary'}>
+                                  {letter}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Attendance Summary */}
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Attendance Summary</h4>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="text-center p-2 rounded bg-emerald-50">
+                        <p className="text-lg font-bold text-emerald-600">{report.attendance.present}</p>
+                        <p className="text-xs text-muted-foreground">Present</p>
+                      </div>
+                      <div className="text-center p-2 rounded bg-red-50">
+                        <p className="text-lg font-bold text-red-600">{report.attendance.absent}</p>
+                        <p className="text-xs text-muted-foreground">Absent</p>
+                      </div>
+                      <div className="text-center p-2 rounded bg-amber-50">
+                        <p className="text-lg font-bold text-amber-600">{report.attendance.late}</p>
+                        <p className="text-xs text-muted-foreground">Late</p>
+                      </div>
+                      <div className="text-center p-2 rounded bg-violet-50">
+                        <p className="text-lg font-bold text-violet-600">{report.attendance.excused}</p>
+                        <p className="text-xs text-muted-foreground">Excused</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button variant="outline" className="w-full" onClick={handlePrint}>
+                    <Printer className="h-4 w-4 mr-2" /> Print Report Card
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground text-sm">Failed to load report card</div>
+              )}
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline" onClick={() => {
+            store.setSelectedStudentId(student.id);
+            store.navigate('student-form', { id: student.id });
+          }}>
+            Edit
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="info" className="space-y-4">

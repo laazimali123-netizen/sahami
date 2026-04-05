@@ -13,7 +13,8 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UserPlus, Search, MoreHorizontal, Eye, Pencil, Users } from 'lucide-react';
+import { UserPlus, Search, MoreHorizontal, Eye, Pencil, Users, Download } from 'lucide-react';
+import { exportToCSV } from '@/lib/csv-export';
 
 export default function TeacherList() {
   const store = useStore();
@@ -50,9 +51,24 @@ export default function TeacherList() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search teachers..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700 shrink-0" onClick={() => store.navigate('teacher-form')}>
-          <UserPlus className="h-4 w-4 mr-2" /> Add Teacher
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={() => exportToCSV(
+            filtered.map(t => ({
+              'Name': t.name,
+              'Email': t.email,
+              'Phone': t.phone || '',
+              'Role': t.role,
+              'Status': t.isActive ? 'Active' : 'Inactive',
+              'Classes': t.classAssignments?.length || 0,
+            })),
+            'teachers'
+          )}>
+            <Download className="h-4 w-4 mr-1" /> CSV
+          </Button>
+          <Button className="bg-emerald-600 hover:bg-emerald-700 shrink-0" onClick={() => store.navigate('teacher-form')}>
+            <UserPlus className="h-4 w-4 mr-2" /> Add Teacher
+          </Button>
+        </div>
       </div>
 
       <Card>

@@ -16,7 +16,8 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UserPlus, Search, MoreHorizontal, Eye, Pencil, GraduationCap } from 'lucide-react';
+import { UserPlus, Search, MoreHorizontal, Eye, Pencil, GraduationCap, Download } from 'lucide-react';
+import { exportToCSV } from '@/lib/csv-export';
 
 export default function StudentList() {
   const store = useStore();
@@ -98,10 +99,28 @@ export default function StudentList() {
             </SelectContent>
           </Select>
         </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700 shrink-0" onClick={() => store.navigate('student-form')}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Add Student
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={() => exportToCSV(
+            filtered.map(s => ({
+              'Student ID': s.studentId,
+              'First Name': s.firstName,
+              'Last Name': s.lastName,
+              'Gender': s.gender,
+              'Class': s.enrollments?.map(e => e.class.name).join(', ') || '',
+              'Status': s.status,
+              'Email': s.email || '',
+              'Phone': s.phone || '',
+              'Enroll Date': s.enrollDate,
+            })),
+            'students'
+          )}>
+            <Download className="h-4 w-4 mr-1" /> CSV
+          </Button>
+          <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => store.navigate('student-form')}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Student
+          </Button>
+        </div>
       </div>
 
       {/* Table */}

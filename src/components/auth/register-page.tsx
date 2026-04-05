@@ -9,6 +9,20 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+function getPasswordStrength(password: string) {
+  let score = 0;
+  if (password.length >= 6) score++;
+  if (password.length >= 10) score++;
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+  if (/[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score <= 1) return { score: 1, label: 'Weak — add uppercase, numbers, or symbols', color: 'bg-red-500', textColor: 'text-red-500' };
+  if (score === 2) return { score: 2, label: 'Fair — consider making it longer', color: 'bg-amber-500', textColor: 'text-amber-500' };
+  if (score === 3) return { score: 3, label: 'Good — almost there!', color: 'bg-emerald-400', textColor: 'text-emerald-500' };
+  return { score: 4, label: 'Strong — excellent password!', color: 'bg-emerald-500', textColor: 'text-emerald-600' };
+}
 
 export default function RegisterPage() {
   const navigate = useStore((s) => s.navigate);
@@ -24,6 +38,7 @@ export default function RegisterPage() {
     plan: (viewParams.plan || 'BASIC') as SubscriptionPlan,
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
@@ -211,7 +226,7 @@ export default function RegisterPage() {
                   <Input
                     id="regPassword"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Min 6 characters"
+                    placeholder="Create a strong password"
                     value={form.password}
                     onChange={(e) => handleChange('password', e.target.value)}
                     required
@@ -225,23 +240,53 @@ export default function RegisterPage() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {/* Password Strength Meter */}
+                {form.password && (
+                  <div className="space-y-1">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className={cn(
+                          'h-1.5 flex-1 rounded-full transition-colors',
+                          i <= getPasswordStrength(form.password).score
+                            ? getPasswordStrength(form.password).color
+                            : 'bg-muted'
+                        )} />
+                      ))}
+                    </div>
+                    <p className={cn('text-xs', getPasswordStrength(form.password).textColor)}>
+                      {getPasswordStrength(form.password).label}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Confirm Password */}
               <div className="space-y-2">
                 <Label htmlFor="regConfirmPassword">Confirm Password</Label>
-                <Input
-                  id="regConfirmPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Re-enter your password"
-                  value={form.confirmPassword}
-                  onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                  required
-                  minLength={6}
-                  className={form.confirmPassword && form.confirmPassword !== form.password ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="regConfirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Re-enter your password"
+                    value={form.confirmPassword}
+                    onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                    required
+                    minLength={6}
+                    className={cn(form.confirmPassword && form.confirmPassword !== form.password ? 'border-red-500' : '', form.confirmPassword && form.confirmPassword === form.password && form.confirmPassword.length > 0 ? 'border-emerald-500' : '')}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {form.confirmPassword && form.confirmPassword !== form.password && (
                   <p className="text-sm text-red-600">Passwords do not match</p>
+                )}
+                {form.confirmPassword && form.confirmPassword === form.password && form.confirmPassword.length > 0 && (
+                  <p className="text-sm text-emerald-600">Passwords match</p>
                 )}
               </div>
 

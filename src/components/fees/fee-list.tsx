@@ -17,8 +17,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Plus, DollarSign, Loader2 } from 'lucide-react';
+import { Plus, DollarSign, Loader2, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportToCSV } from '@/lib/csv-export';
 
 export default function FeeList() {
   const store = useStore();
@@ -104,14 +105,28 @@ export default function FeeList() {
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">{fees.length} fee record(s)</p>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
-              <Plus className="h-4 w-4 mr-2" /> Add Fee
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Add Fee Record</DialogTitle></DialogHeader>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportToCSV(
+            fees.map(f => ({
+              'Student': `${f.student?.firstName || ''} ${f.student?.lastName || ''}`,
+              'Student ID': f.student?.studentId || '',
+              'Title': f.title,
+              'Amount': f.amount,
+              'Due Date': f.dueDate || '',
+              'Status': f.status,
+            })),
+            'fees'
+          )}>
+            <Download className="h-4 w-4 mr-1" /> CSV
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-emerald-600 hover:bg-emerald-700">
+                <Plus className="h-4 w-4 mr-2" /> Add Fee
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add Fee Record</DialogTitle></DialogHeader>
             <form onSubmit={handleAdd} className="space-y-4">
               <div className="space-y-2">
                 <Label>Student *</Label>
@@ -145,6 +160,7 @@ export default function FeeList() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>

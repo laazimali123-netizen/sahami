@@ -21,6 +21,7 @@ import {
 import {
   UserCog, Plus, Search, MoreVertical, Pencil, Trash2, Shield,
   Users, GraduationCap, Building2, Loader2, Mail, DollarSign,
+  Eye, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -56,6 +57,7 @@ export default function AdminEmployees() {
   const [editUser, setEditUser] = useState<Employee | null>(null);
   const [saving, setSaving] = useState(false);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [form, setForm] = useState({
     name: '', email: '', password: '', role: 'MANAGER', schoolId: '',
   });
@@ -307,7 +309,12 @@ export default function AdminEmployees() {
             </div>
             <div className="space-y-2">
               <Label>Password *</Label>
-              <Input type="password" placeholder="Min 6 characters" value={form.password} onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))} />
+              <div className="relative">
+                <Input type={showCreatePassword ? 'text' : 'password'} placeholder="Set account password (min 6 chars)" value={form.password} onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))} />
+                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowCreatePassword(!showCreatePassword)}>
+                  {showCreatePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

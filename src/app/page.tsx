@@ -29,6 +29,10 @@ import FeeForm from '@/components/fees/fee-form';
 import SettingsView from '@/components/settings/settings-view';
 import ReportsView from '@/components/reports/reports-view';
 import StaffList from '@/components/staff/staff-list';
+import EventList from '@/components/events/event-list';
+import HomeworkList from '@/components/homework/homework-list';
+import BehaviorList from '@/components/behavior/behavior-list';
+import ExamList from '@/components/exams/exam-list';
 // Admin views
 import AdminDashboard from '@/components/admin/admin-dashboard';
 import AdminSchools from '@/components/admin/admin-schools';
@@ -113,7 +117,6 @@ export default function Home() {
       case 'student-detail':
         return <StudentDetail />;
       case 'teachers':
-        // Teachers can see themselves only; OWNER/MANAGER see all
         return <TeacherList />;
       case 'teacher-form':
         return <TeacherForm />;
@@ -135,6 +138,14 @@ export default function Home() {
         return <GradeList />;
       case 'timetable':
         return <TimetableView />;
+      case 'events':
+        return <EventList />;
+      case 'homework':
+        return <HomeworkList />;
+      case 'behavior':
+        return <BehaviorList />;
+      case 'exams':
+        return <ExamList />;
       case 'announcements':
         return <AnnouncementList />;
       case 'announcement-form':
@@ -150,7 +161,6 @@ export default function Home() {
       case 'reports':
         return <ReportsView />;
       case 'staff':
-        // Only OWNER can manage staff
         return <StaffList />;
       case 'settings':
         return <SettingsView />;

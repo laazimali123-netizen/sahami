@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect, useState, useCallback } from 'react';
 import { useStore } from '@/store';
 import Sidebar from './sidebar';
-import { Bell, Menu, Search } from 'lucide-react';
+import { Bell, Menu, Search, Moon, Sun, Check, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,6 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 const viewTitles: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -33,6 +36,10 @@ const viewTitles: Record<string, string> = {
   grades: 'Grades',
   gradebook: 'Gradebook',
   timetable: 'Timetable',
+  events: 'Events',
+  exams: 'Exams',
+  homework: 'Homework',
+  behavior: 'Behavior',
   announcements: 'Announcements',
   'announcement-form': 'Create Announcement',
   messages: 'Messages',
@@ -42,6 +49,7 @@ const viewTitles: Record<string, string> = {
   reports: 'Reports',
   settings: 'Settings',
   subscription: 'Subscription',
+  staff: 'Staff',
 };
 
 interface AppShellProps {
@@ -54,9 +62,85 @@ export default function AppShell({ children }: AppShellProps) {
   const sidebarOpen = useStore((s) => s.sidebarOpen);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
   const logout = useStore((s) => s.logout);
+  const darkMode = useStore((s) => s.darkMode);
+  const toggleDarkMode = useStore((s) => s.toggleDarkMode);
+  const notifications = useStore((s) => s.notifications);
+  const setNotifications = useStore((s) => s.setNotifications);
 
   const title = viewTitles[currentView] || 'Dashboard';
   const initials = session?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!session?.userId) return;
+    try {
+      const res = await fetch('/api/notifications?limit=10');
+      const data = await res.json();
+      if (data.notifications) setNotifications(data.notifications);
+    } catch { /* empty */ }
+  }, [session?.userId, setNotifications]);
+
+  useEffect(() => {
+    fetchNotifications();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  // Initialize dark mode from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('sahami_dark');
+      if (stored === 'true') {
+        document.documentElement.classList.add('dark');
+      }
+    }
+  }, []);
+
+  const handleMarkRead = async (id: string) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markRead: true, notificationId: id }),
+      });
+      setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch { /* empty */ }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllRead: true }),
+      });
+      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+      toast.success('All notifications marked as read');
+    } catch { /* empty */ }
+  };
+
+  const notifTypeColor: Record<string, string> = {
+    INFO: 'bg-blue-100 text-blue-700',
+    WARNING: 'bg-amber-100 text-amber-700',
+    SUCCESS: 'bg-emerald-100 text-emerald-700',
+    ERROR: 'bg-red-100 text-red-700',
+  };
+
+  const formatTimeAgo = (dateStr: string) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -90,30 +174,66 @@ export default function AppShell({ children }: AppShellProps) {
             />
           </div>
 
+          {/* Dark Mode Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleDarkMode}
+            className="hidden sm:flex"
+            title={darkMode ? 'Light mode' : 'Dark mode'}
+          >
+            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+
+          {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] bg-emerald-500 text-white border-0">
-                  3
-                </Badge>
+                {unreadCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] bg-emerald-500 text-white border-0">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Badge>
+                )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuLabel className="flex items-center justify-between">
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <Button variant="ghost" size="sm" className="h-6 text-xs text-emerald-600 hover:text-emerald-700" onClick={handleMarkAllRead}>
+                    <CheckCheck className="h-3 w-3 mr-1" /> Mark all read
+                  </Button>
+                )}
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex flex-col items-start gap-1 p-3">
-                <span className="text-sm font-medium">New student enrolled</span>
-                <span className="text-xs text-muted-foreground">2 minutes ago</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start gap-1 p-3">
-                <span className="text-sm font-medium">Attendance report ready</span>
-                <span className="text-xs text-muted-foreground">1 hour ago</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start gap-1 p-3">
-                <span className="text-sm font-medium">Fee payment received</span>
-                <span className="text-xs text-muted-foreground">3 hours ago</span>
-              </DropdownMenuItem>
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  No notifications yet
+                </div>
+              ) : (
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.map((n) => (
+                    <DropdownMenuItem
+                      key={n.id}
+                      className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${!n.isRead ? 'bg-muted/50' : ''}`}
+                      onClick={() => !n.isRead && handleMarkRead(n.id)}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="text-sm font-medium flex-1 truncate">{n.title}</span>
+                        {!n.isRead && <div className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />}
+                      </div>
+                      <span className="text-xs text-muted-foreground line-clamp-2">{n.message}</span>
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="text-[10px] text-muted-foreground">{formatTimeAgo(n.createdAt)}</span>
+                        <Badge className={`${notifTypeColor[n.type] || notifTypeColor.INFO} text-[10px] px-1.5 py-0 border-0`}>
+                          {n.type}
+                        </Badge>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 

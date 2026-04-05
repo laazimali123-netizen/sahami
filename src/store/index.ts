@@ -46,7 +46,11 @@ export type AppView =
   | 'admin-school-detail'
   | 'admin-employees'
   | 'staff'
-  | 'staff-create';
+  | 'staff-create'
+  | 'events'
+  | 'homework'
+  | 'behavior'
+  | 'exams';
 
 export interface SessionData {
   userId: string;
@@ -190,6 +194,75 @@ export interface Message {
   receiver?: { name: string; avatar: string | null };
 }
 
+export interface SchoolEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  startDate: string;
+  endDate: string | null;
+  type: string;
+  schoolId: string;
+  createdAt: string;
+}
+
+export interface Homework {
+  id: string;
+  title: string;
+  description: string | null;
+  classId: string;
+  subjectId: string;
+  teacherId: string;
+  dueDate: string;
+  status: string;
+  schoolId: string;
+  createdAt: string;
+  class?: { id: string; name: string };
+  subject?: { id: string; name: string; code: string };
+  teacher?: { id: string; name: string };
+}
+
+export interface BehaviorRecord {
+  id: string;
+  studentId: string;
+  type: string;
+  category: string;
+  description: string | null;
+  date: string;
+  recordedBy: string;
+  schoolId: string;
+  createdAt: string;
+  student?: { id: string; studentId: string; firstName: string; lastName: string };
+  recorder?: { id: string; name: string };
+}
+
+export interface Exam {
+  id: string;
+  title: string;
+  subjectId: string;
+  classId: string;
+  teacherId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  totalMarks: number;
+  room: string | null;
+  schoolId: string;
+  createdAt: string;
+  class?: { id: string; name: string };
+  subject?: { id: string; name: string; code: string };
+  teacher?: { id: string; name: string };
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export interface DashboardStats {
   totalStudents: number;
   totalTeachers: number;
@@ -229,6 +302,8 @@ interface SahamiStore {
   feeRecords: FeeRecord[];
   messages: Message[];
   dashboardStats: DashboardStats | null;
+  events: SchoolEvent[];
+  notifications: Notification[];
 
   // UI state
   sidebarOpen: boolean;
@@ -236,6 +311,7 @@ interface SahamiStore {
   selectedClassId: string | null;
   selectedStudentId: string | null;
   selectedTeacherId: string | null;
+  darkMode: boolean;
 
   // Auth actions
   setSession: (session: SessionData | null) => void;
@@ -257,6 +333,8 @@ interface SahamiStore {
   setFeeRecords: (records: FeeRecord[]) => void;
   setMessages: (messages: Message[]) => void;
   setDashboardStats: (stats: DashboardStats) => void;
+  setEvents: (events: SchoolEvent[]) => void;
+  setNotifications: (notifications: Notification[]) => void;
 
   // UI actions
   toggleSidebar: () => void;
@@ -264,6 +342,8 @@ interface SahamiStore {
   setSelectedClassId: (id: string | null) => void;
   setSelectedStudentId: (id: string | null) => void;
   setSelectedTeacherId: (id: string | null) => void;
+  toggleDarkMode: () => void;
+  setDarkMode: (dark: boolean) => void;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -306,6 +386,8 @@ export const useStore = create<SahamiStore>((set, get) => ({
   feeRecords: [],
   messages: [],
   dashboardStats: null,
+  events: [],
+  notifications: [],
 
   // UI state
   sidebarOpen: true,
@@ -313,6 +395,15 @@ export const useStore = create<SahamiStore>((set, get) => ({
   selectedClassId: null,
   selectedStudentId: null,
   selectedTeacherId: null,
+  darkMode: (() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const stored = localStorage.getItem('sahami_dark');
+      return stored === 'true';
+    } catch {
+      return false;
+    }
+  })(),
 
   // Auth actions
   setSession: (session) => {
@@ -362,6 +453,8 @@ export const useStore = create<SahamiStore>((set, get) => ({
       feeRecords: [],
       messages: [],
       dashboardStats: null,
+      events: [],
+      notifications: [],
     });
   },
 
@@ -401,6 +494,8 @@ export const useStore = create<SahamiStore>((set, get) => ({
   setFeeRecords: (records) => set({ feeRecords: records }),
   setMessages: (messages) => set({ messages }),
   setDashboardStats: (stats) => set({ dashboardStats: stats }),
+  setEvents: (events) => set({ events }),
+  setNotifications: (notifications) => set({ notifications }),
 
   // UI actions
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
@@ -408,4 +503,27 @@ export const useStore = create<SahamiStore>((set, get) => ({
   setSelectedClassId: (id) => set({ selectedClassId: id }),
   setSelectedStudentId: (id) => set({ selectedStudentId: id }),
   setSelectedTeacherId: (id) => set({ selectedTeacherId: id }),
+  toggleDarkMode: () => {
+    const newVal = !get().darkMode;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sahami_dark', String(newVal));
+      if (newVal) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+    set({ darkMode: newVal });
+  },
+  setDarkMode: (dark) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sahami_dark', String(dark));
+      if (dark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+    set({ darkMode: dark });
+  },
 }));

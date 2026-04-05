@@ -7,11 +7,11 @@ import {
   MessageSquare, DollarSign, PieChart, Settings, LogOut,
   ChevronLeft, ChevronRight, X, ShieldCheck, Sparkles,
   Building2, UserCog, Shield, UserPlus,
+  CalendarDays, BookCopy, Award, FileCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -37,6 +37,10 @@ const ownerNav: NavItem[] = [
   { view: 'attendance', label: 'Attendance', icon: ClipboardCheck },
   { view: 'grades', label: 'Grades', icon: BarChart3 },
   { view: 'timetable', label: 'Schedule', icon: Calendar },
+  { view: 'events', label: 'Events', icon: CalendarDays },
+  { view: 'exams', label: 'Exams', icon: FileCheck },
+  { view: 'homework', label: 'Homework', icon: BookCopy },
+  { view: 'behavior', label: 'Behavior', icon: Award },
   { view: 'announcements', label: 'Announcements', icon: Megaphone },
   { view: 'messages', label: 'Messages', icon: MessageSquare, pro: true },
   { view: 'fees', label: 'Finance', icon: DollarSign, pro: true },
@@ -54,6 +58,10 @@ const managerNav: NavItem[] = [
   { view: 'attendance', label: 'Attendance', icon: ClipboardCheck },
   { view: 'grades', label: 'Grades', icon: BarChart3 },
   { view: 'timetable', label: 'Schedule', icon: Calendar },
+  { view: 'events', label: 'Events', icon: CalendarDays },
+  { view: 'exams', label: 'Exams', icon: FileCheck },
+  { view: 'homework', label: 'Homework', icon: BookCopy },
+  { view: 'behavior', label: 'Behavior', icon: Award },
   { view: 'announcements', label: 'Announcements', icon: Megaphone },
   { view: 'messages', label: 'Messages', icon: MessageSquare, pro: true },
   { view: 'reports', label: 'Reports', icon: PieChart, pro: true },
@@ -66,6 +74,10 @@ const teacherNav: NavItem[] = [
   { view: 'attendance', label: 'Attendance', icon: ClipboardCheck },
   { view: 'grades', label: 'Grades', icon: BarChart3 },
   { view: 'timetable', label: 'Schedule', icon: Calendar },
+  { view: 'events', label: 'Events', icon: CalendarDays },
+  { view: 'exams', label: 'Exams', icon: FileCheck },
+  { view: 'homework', label: 'Homework', icon: BookCopy },
+  { view: 'behavior', label: 'Behavior', icon: Award },
 ];
 
 // Navigation for FINANCE role (limited to finance only)
@@ -140,7 +152,7 @@ export default function Sidebar() {
     return item.pro && !isPro;
   };
 
-  const canSeeSettings = isOwner || isManager;
+  const canSeeSettings = isOwner || isManager || isTeacher || isFinance;
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -185,8 +197,8 @@ export default function Sidebar() {
 
         <Separator className="bg-sidebar-border" />
 
-        {/* Navigation */}
-        <ScrollArea className="flex-1 sidebar-scroll px-2 py-3">
+        {/* Navigation - scrollable */}
+        <div className="flex-1 overflow-y-auto sidebar-scroll px-2 py-3 min-h-0">
           <nav className="space-y-1">
             {navItems.map((item) => {
               const active = isActive(item.view);
@@ -244,7 +256,7 @@ export default function Sidebar() {
               return button;
             })}
           </nav>
-        </ScrollArea>
+        </div>
 
         <Separator className="bg-sidebar-border" />
 
