@@ -39,6 +39,8 @@ import AdminSchools from '@/components/admin/admin-schools';
 import AdminSchoolCreate from '@/components/admin/admin-school-create';
 import AdminSchoolDetail from '@/components/admin/admin-school-detail';
 import AdminEmployees from '@/components/admin/admin-employees';
+import AdminBroadcast from '@/components/admin/admin-broadcast';
+import UpgradePage from '@/components/settings/upgrade-page';
 import { useEffect } from 'react';
 
 // Lazy wrapper for PRO-only features
@@ -101,6 +103,8 @@ export default function Home() {
           return <AdminSchoolDetail />;
         case 'admin-employees':
           return <AdminEmployees />;
+        case 'admin-broadcast':
+          return <AdminBroadcast />;
         default:
           return <AdminDashboard />;
       }
@@ -164,6 +168,8 @@ export default function Home() {
         return <StaffList />;
       case 'settings':
         return <SettingsView />;
+      case 'upgrade':
+        return <UpgradePage />;
       default:
         return <DashboardView />;
     }

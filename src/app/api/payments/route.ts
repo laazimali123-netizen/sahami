@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  if (session.role !== 'MANAGER') {
-    return new Response(JSON.stringify({ error: 'Only managers can record payments' }), {
+  if (!['OWNER', 'MANAGER'].includes(session.role)) {
+    return new Response(JSON.stringify({ error: 'Only owners and managers can record payments' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });

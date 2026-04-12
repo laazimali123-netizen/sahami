@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
-  if (session.role !== 'MANAGER') {
-    return new Response(JSON.stringify({ error: 'Only managers can create subjects' }), {
+  if (!['OWNER', 'MANAGER'].includes(session.role)) {
+    return new Response(JSON.stringify({ error: 'Only owners and managers can create subjects' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });

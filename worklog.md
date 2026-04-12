@@ -111,3 +111,38 @@ Stage Summary:
 - 10 elite features added (events, homework, behavior, exams, notifications, dark mode, CSV export, real reports, report cards, change password)
 - Build passes with 0 TypeScript errors
 - Individual API tests confirmed working (events, reports, password change)
+
+---
+Task ID: 2
+Agent: full-stack-developer
+Task: Fix OWNER permissions + Add trial/purchase/broadcast features
+
+Work Log:
+- Fixed OWNER permission in 11 API route files (subjects, payments, fees, announcements, classes x2, students x2, teachers x2, timetable, settings)
+- Changed `session.role !== 'MANAGER'` to `!['OWNER', 'MANAGER'].includes(session.role)` for all POST/PUT/DELETE checks
+- Updated Prisma schema with: trialStart (DateTime?) on School, PaymentProof model, Broadcast model
+- Added `paymentProofs PaymentProof[]` relation to School, `broadcasts Broadcast[]` to User
+- Updated auth.ts: added `isTrialActive(school)` function, updated `hasFeature()` to accept optional `trialActive` param
+- Updated register API to set `trialStart: new Date()` for all new schools
+- Updated settings API GET to include trialStart in response
+- Created `/api/payments/proof/route.ts`: POST (submit proof), GET (list proofs - SUPER_ADMIN only)
+- Created `/api/payments/proof/[id]/route.ts`: PUT (approve/reject - SUPER_ADMIN only, auto-upgrades school on approve)
+- Created `/api/admin/broadcast/route.ts`: POST (send broadcast, 3/week limit), GET (list broadcasts)
+- Created `src/components/settings/upgrade-page.tsx`: Shows trial countdown, upgrade form with ETB payment methods (EBIRR/KAAFII/CBE), payment account details
+- Created `src/components/admin/admin-broadcast.tsx`: Compose form, weekly limit display, broadcast history
+- Updated store: Added 'upgrade', 'admin-broadcast', 'admin-payments' to AppView; Added PaymentProof and Broadcast interfaces; Added paymentProofs to data cache
+- Updated sidebar: Added "Upgrade" link with Crown icon for OWNER/MANAGER; Added "Broadcasts" and "Payment Proofs" to admin nav
+- Updated app-shell: Added viewTitles for upgrade, admin-broadcast, admin-payments
+- Updated page.tsx: Added UpgradePage and AdminBroadcast routes
+- Updated register-page.tsx: Removed plan selection dropdown, replaced with free trial info banner
+- Updated settings-view.tsx: Changed price display to ETB, made Upgrade Now button navigate to upgrade page
+- Ran prisma db push successfully
+- Build passes: 0 lint errors, 0 build errors, 42 API routes
+
+Stage Summary:
+- OWNER users can now create students/classes/subjects/fees/payments
+- 30-day free trial with PRO features for all new schools
+- Purchase flow with ETB payment methods (Telebirr/Ebirr, Kaafi, CBE)
+- Super admin broadcast with 3/week limit
+- Super admin payment proof review (approve/reject)
+- Currency displayed as ETB (1,500 ETB/month for PRO)

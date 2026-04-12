@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  if (session.role !== 'MANAGER') {
-    return new Response(JSON.stringify({ error: 'Only managers can create fee records' }), {
+  if (!['OWNER', 'MANAGER'].includes(session.role)) {
+    return new Response(JSON.stringify({ error: 'Only owners and managers can create fee records' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });

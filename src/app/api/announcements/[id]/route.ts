@@ -16,8 +16,8 @@ export async function DELETE(
   const { session } = auth;
   const { id } = await params;
 
-  if (session.role !== 'MANAGER') {
-    return new Response(JSON.stringify({ error: 'Only managers can delete announcements' }), {
+  if (!['OWNER', 'MANAGER'].includes(session.role)) {
+    return new Response(JSON.stringify({ error: 'Only owners and managers can delete announcements' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });

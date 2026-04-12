@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       id: true, name: true, nameAr: true, address: true, phone: true,
       email: true, logo: true, plan: true, maxStudents: true,
       maxTeachers: true, academicYear: true, isActive: true, createdAt: true,
+      trialStart: true,
     },
   });
 
@@ -54,8 +55,8 @@ export async function PUT(request: NextRequest) {
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
-  if (session.role !== 'MANAGER') {
-    return new Response(JSON.stringify({ error: 'Only managers can update settings' }), {
+  if (!['OWNER', 'MANAGER'].includes(session.role)) {
+    return new Response(JSON.stringify({ error: 'Only owners and managers can update settings' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });

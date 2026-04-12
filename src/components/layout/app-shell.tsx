@@ -49,7 +49,10 @@ const viewTitles: Record<string, string> = {
   reports: 'Reports',
   settings: 'Settings',
   subscription: 'Subscription',
+  upgrade: 'Upgrade Plan',
   staff: 'Staff',
+  'admin-broadcast': 'Broadcasts',
+  'admin-payments': 'Payment Proofs',
 };
 
 interface AppShellProps {

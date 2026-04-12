@@ -27,6 +27,7 @@ model School {
   maxStudents   Int      @default(100)
   maxTeachers   Int      @default(20)
   academicYear  String   @default("2025-2026")
+  trialStart    DateTime?
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -43,6 +44,7 @@ model School {
   homeworks       Homework[]
   behaviorRecords BehaviorRecord[]
   exams           Exam[]
+  paymentProofs   PaymentProof[]
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -78,6 +80,7 @@ model User {
   recordedBehaviors BehaviorRecord[]  @relation("BehaviorRecorder")
   exams             Exam[]
   notifications     Notification[]
+  broadcasts        Broadcast[]
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -428,4 +431,40 @@ model Notification {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+// PAYMENT PROOF: School payment proof for manual verification
+// ─────────────────────────────────────────────────────────────
+model PaymentProof {
+  id            String    @id @default(cuid())
+  schoolId      String
+  schoolName    String
+  requesterId   String
+  requesterName String
+  plan          String    // PRO
+  amount        Float
+  method        String    // EBIRR | KAAFII | CBE
+  contactInfo   String    // email or phone number of the person who sent payment
+  screenshotUrl String?
+  status        String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  adminNotes    String?
+  createdAt     DateTime  @default(now())
+  reviewedAt    DateTime?
+
+  school  School @relation(fields: [schoolId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────
+// BROADCAST: Super admin broadcast messages
+// ─────────────────────────────────────────────────────────────
+model Broadcast {
+  id        String   @id @default(cuid())
+  senderId  String
+  title     String
+  content   String
+  type      String   @default("EMAIL") // EMAIL | SMS
+  createdAt DateTime @default(now())
+
+  sender    User     @relation(fields: [senderId], references: [id])
 }

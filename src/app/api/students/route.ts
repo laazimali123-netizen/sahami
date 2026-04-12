@@ -76,9 +76,9 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Only managers can create students
-  if (session.role !== 'MANAGER') {
-    return new Response(JSON.stringify({ error: 'Only managers can create students' }), {
+  // Only owners and managers can create students
+  if (!['OWNER', 'MANAGER'].includes(session.role)) {
+    return new Response(JSON.stringify({ error: 'Only owners and managers can create students' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });

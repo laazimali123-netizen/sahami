@@ -6,7 +6,7 @@ import {
   ClipboardCheck, BarChart3, Calendar, Megaphone,
   MessageSquare, DollarSign, PieChart, Settings, LogOut,
   ChevronLeft, ChevronRight, X, ShieldCheck, Sparkles,
-  Building2, UserCog, Shield, UserPlus,
+  Building2, UserCog, Shield, UserPlus, Crown,
   CalendarDays, BookCopy, Award, FileCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -92,6 +92,8 @@ const adminNav: NavItem[] = [
   { view: 'admin-dashboard', label: 'Overview', icon: LayoutDashboard },
   { view: 'admin-schools', label: 'Schools', icon: Building2 },
   { view: 'admin-employees', label: 'Employees', icon: UserCog },
+  { view: 'admin-broadcast', label: 'Broadcasts', icon: Megaphone },
+  { view: 'admin-payments', label: 'Payment Proofs', icon: DollarSign },
 ];
 
 export default function Sidebar() {
@@ -274,6 +276,26 @@ export default function Sidebar() {
             >
               <Settings className="h-5 w-5 shrink-0" />
               {sidebarOpen && <span>Settings</span>}
+            </button>
+          )}
+
+          {(isOwner || isManager) && (
+            <button
+              onClick={() => { navigate('upgrade'); if (window.innerWidth < 1024) toggleSidebar(); }}
+              className={cn(
+                'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                currentView === 'upgrade'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+              )}
+            >
+              <Crown className="h-5 w-5 shrink-0" />
+              {sidebarOpen && <span>Upgrade</span>}
+              {sidebarOpen && !isPro && (
+                <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-[10px] px-1.5 py-0">
+                  PRO
+                </Badge>
+              )}
             </button>
           )}
 

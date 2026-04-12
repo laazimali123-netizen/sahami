@@ -56,8 +56,18 @@ export function hasPermission(userRole: string, requiredRole: string): boolean {
   return (ROLE_HIERARCHY[userRole] || 0) >= (ROLE_HIERARCHY[requiredRole] || 0);
 }
 
+/** Check if a school's trial period is still active (within 30 days) */
+export function isTrialActive(school: { trialStart: Date | string | null } | null): boolean {
+  if (!school || !school.trialStart) return false;
+  const trialStart = new Date(school.trialStart);
+  const now = new Date();
+  const diffMs = now.getTime() - trialStart.getTime();
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  return diffDays <= 30;
+}
+
 /** Check if user can access a feature based on subscription plan */
-export function hasFeature(plan: string | null, feature: string): boolean {
+export function hasFeature(plan: string | null, feature: string, trialActive?: boolean): boolean {
   const BASIC_FEATURES = [
     'dashboard', 'students', 'teachers', 'classes', 'subjects',
     'attendance', 'grades', 'timetable', 'announcements', 'settings',
@@ -65,7 +75,7 @@ export function hasFeature(plan: string | null, feature: string): boolean {
   const PRO_ONLY_FEATURES = ['fees', 'payments', 'reports', 'messages'];
 
   if (PRO_ONLY_FEATURES.includes(feature)) {
-    return plan === 'PRO';
+    return plan === 'PRO' || !!trialActive;
   }
   return BASIC_FEATURES.includes(feature);
 }

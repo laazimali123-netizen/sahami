@@ -254,7 +254,7 @@ export default function SettingsView() {
               <div>
                 <p className="font-semibold">Current Plan</p>
                 <p className="text-sm text-muted-foreground">
-                  {isPro ? 'PRO — $29/month' : 'BASIC — Free'}
+                  {isPro ? 'PRO — 1,500 ETB/month' : 'BASIC — Free'}
                 </p>
               </div>
             </div>
@@ -266,7 +266,7 @@ export default function SettingsView() {
             <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
               <p className="text-sm font-medium text-amber-800 mb-1">Upgrade to PRO</p>
               <p className="text-xs text-amber-700 mb-3">Get access to Finance, Messaging, Advanced Reports, and unlimited students & teachers.</p>
-              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">Upgrade Now</Button>
+              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white" onClick={() => navigate('upgrade')}>Upgrade Now</Button>
             </div>
           )}
         </CardContent>

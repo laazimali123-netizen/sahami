@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create school
+    // Create school with 30-day free trial
     const school = await db.school.create({
       data: {
         name: schoolName.trim(),
@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
         plan: plan || 'BASIC',
         maxStudents: plan === 'PRO' ? 500 : 100,
         maxTeachers: plan === 'PRO' ? 50 : 20,
+        trialStart: new Date(),
       },
     });
 

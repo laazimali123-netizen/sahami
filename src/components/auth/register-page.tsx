@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useStore, type SubscriptionPlan } from '@/store';
+import { useStore } from '@/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, CheckCircle2, XCircle, AlertCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -35,7 +34,6 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    plan: (viewParams.plan || 'BASIC') as SubscriptionPlan,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -118,7 +116,7 @@ export default function RegisterPage() {
           managerName: form.managerName.trim(),
           email: form.email.trim().toLowerCase(),
           password: form.password,
-          plan: form.plan,
+          plan: 'BASIC',
         }),
       });
       const data = await res.json();
@@ -290,18 +288,13 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              {/* Plan Selection */}
-              <div className="space-y-2">
-                <Label>Subscription Plan</Label>
-                <Select value={form.plan} onValueChange={(v) => handleChange('plan', v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BASIC">BASIC — Free (100 students, 20 teachers)</SelectItem>
-                    <SelectItem value="PRO">PRO — $29/month (500 students, 50 teachers + Finance & Messaging)</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Free Trial Info */}
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                <Sparkles className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-emerald-800">Start with a free 30-day PRO trial</p>
+                  <p className="text-xs text-emerald-700 mt-0.5">No credit card required. Get full access to all PRO features for 30 days.</p>
+                </div>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">

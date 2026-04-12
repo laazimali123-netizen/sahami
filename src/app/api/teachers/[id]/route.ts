@@ -58,8 +58,8 @@ export async function PUT(
   const { session } = auth;
   const { id } = await params;
 
-  if (session.role !== 'MANAGER') {
-    return new Response(JSON.stringify({ error: 'Only managers can update teachers' }), {
+  if (!['OWNER', 'MANAGER'].includes(session.role)) {
+    return new Response(JSON.stringify({ error: 'Only owners and managers can update teachers' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -101,8 +101,8 @@ export async function DELETE(
   const { session } = auth;
   const { id } = await params;
 
-  if (session.role !== 'MANAGER') {
-    return new Response(JSON.stringify({ error: 'Only managers can deactivate teachers' }), {
+  if (!['OWNER', 'MANAGER'].includes(session.role)) {
+    return new Response(JSON.stringify({ error: 'Only owners and managers can deactivate teachers' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });

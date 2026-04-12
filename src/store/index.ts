@@ -40,11 +40,14 @@ export type AppView =
   | 'reports'
   | 'settings'
   | 'subscription'
+  | 'upgrade'
   | 'admin-dashboard'
   | 'admin-schools'
   | 'admin-school-create'
   | 'admin-school-detail'
   | 'admin-employees'
+  | 'admin-broadcast'
+  | 'admin-payments'
   | 'staff'
   | 'staff-create'
   | 'events'
@@ -263,6 +266,33 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface PaymentProof {
+  id: string;
+  schoolId: string;
+  schoolName: string;
+  requesterId: string;
+  requesterName: string;
+  plan: string;
+  amount: number;
+  method: string;
+  contactInfo: string;
+  screenshotUrl: string | null;
+  status: string;
+  adminNotes: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
+export interface Broadcast {
+  id: string;
+  senderId: string;
+  title: string;
+  content: string;
+  type: string;
+  createdAt: string;
+  sender?: { name: string; email: string };
+}
+
 export interface DashboardStats {
   totalStudents: number;
   totalTeachers: number;
@@ -302,8 +332,9 @@ interface SahamiStore {
   feeRecords: FeeRecord[];
   messages: Message[];
   dashboardStats: DashboardStats | null;
-  events: SchoolEvent[];
-  notifications: Notification[];
+  events: SchoolEvent[]
+  notifications: Notification[]
+  paymentProofs: PaymentProof[]
 
   // UI state
   sidebarOpen: boolean;
@@ -335,6 +366,7 @@ interface SahamiStore {
   setDashboardStats: (stats: DashboardStats) => void;
   setEvents: (events: SchoolEvent[]) => void;
   setNotifications: (notifications: Notification[]) => void;
+  setPaymentProofs: (proofs: PaymentProof[]) => void;
 
   // UI actions
   toggleSidebar: () => void;
@@ -388,6 +420,7 @@ export const useStore = create<SahamiStore>((set, get) => ({
   dashboardStats: null,
   events: [],
   notifications: [],
+  paymentProofs: [],
 
   // UI state
   sidebarOpen: true,
@@ -455,6 +488,7 @@ export const useStore = create<SahamiStore>((set, get) => ({
       dashboardStats: null,
       events: [],
       notifications: [],
+      paymentProofs: []
     });
   },
 
@@ -496,6 +530,7 @@ export const useStore = create<SahamiStore>((set, get) => ({
   setDashboardStats: (stats) => set({ dashboardStats: stats }),
   setEvents: (events) => set({ events }),
   setNotifications: (notifications) => set({ notifications }),
+  setPaymentProofs: (paymentProofs) => set({ paymentProofs }),
 
   // UI actions
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
