@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════
 // SAHAMI - Enterprise School Management SaaS Platform
-// Multi-tenant Architecture with SQLite (Prisma ORM)
+// Multi-tenant Architecture (Prisma ORM + PostgreSQL)
 // ═══════════════════════════════════════════════════════════
 
 generator client {
@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
