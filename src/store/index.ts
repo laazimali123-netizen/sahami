@@ -6,6 +6,31 @@
 import { create } from 'zustand';
 
 // ─────────────────────────────────────────────────────────────
+// GLOBAL FETCH PATCH - Inject auth header from localStorage
+// Ensures all fetch() calls include the session token so API
+// routes can authenticate even when cookies are not sent (e.g.
+// cross-origin on Vercel deployments).
+// ─────────────────────────────────────────────────────────────
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch;
+  window.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    try {
+      const stored = localStorage.getItem('sahami_session');
+      if (stored) {
+        const headers = new Headers(init?.headers);
+        if (!headers.has('Authorization')) {
+          // Safe base64 encoding that handles unicode
+          const encoded = btoa(unescape(encodeURIComponent(stored)));
+          headers.set('Authorization', `Bearer ${encoded}`);
+        }
+        return originalFetch.call(this, input, { ...init, headers, credentials: 'include' });
+      }
+    } catch { /* empty */ }
+    return originalFetch.call(this, input, { ...init, credentials: 'include' });
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────
 

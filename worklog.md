@@ -146,3 +146,20 @@ Stage Summary:
 - Super admin broadcast with 3/week limit
 - Super admin payment proof review (approve/reject)
 - Currency displayed as ETB (1,500 ETB/month for PRO)
+
+---
+Task ID: 3
+Agent: general-purpose
+Task: Fix Sahami auth cookie bypass on Vercel + student form gender case mismatch
+
+Work Log:
+- **Root cause**: Login/Register sets session in localStorage AND a cookie via Set-Cookie header. API routes (`authenticateRequest`) only read from cookies. On Vercel deployments, cookies may not be sent with client-side `fetch()` calls (SameSite/scope issues), causing all authenticated API endpoints to return 401.
+- **Fix 1 - `src/lib/auth.ts`**: Added `safeBase64Decode()` helper that handles unicode via a `decodeURIComponent(escape(...))` fallback. Modified `authenticateRequest` to try cookie parsing first, then fall back to reading `Authorization: Bearer <base64>` header. Also added session `schoolPlan` refresh from user's school data if plan changed.
+- **Fix 2 - `src/store/index.ts`**: Added global `window.fetch` patch at module load time. Every `fetch()` call now automatically reads `sahami_session` from localStorage, base64-encodes it (with unicode safety via `btoa(unescape(encodeURIComponent(...)))`), and sets `Authorization: Bearer <token>` header. Also forces `credentials: 'include'` on all requests to keep sending cookies as a belt-and-suspenders approach.
+- **Fix 3 - `src/components/students/student-form.tsx`**: Changed gender Select values from `"Male"/"Female"/"Other"` to `"MALE"/"FEMALE"/"OTHER"` to match API enum expectations (Prisma schema uses uppercase enums).
+
+Stage Summary:
+- Auth now works via dual-channel: cookies (primary) + Authorization header (fallback)
+- All existing component fetch calls automatically get auth headers injected — zero component changes needed
+- Student gender field now submits correct uppercase enum values
+- Changes are backwards-compatible — existing cookie-based auth still works as primary

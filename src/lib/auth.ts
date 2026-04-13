@@ -121,12 +121,44 @@ export function getClearSessionCookie(): string {
   return `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 }
 
+/** Safely decode a base64 string to UTF-8, handling unicode characters */
+function safeBase64Decode(str: string): string {
+  try {
+    const decoded = Buffer.from(str, 'base64').toString('utf-8');
+    JSON.parse(decoded); // validate it's valid JSON
+    return decoded;
+  } catch {
+    try {
+      return decodeURIComponent(escape(Buffer.from(str, 'base64').toString('binary')));
+    } catch {
+      return '';
+    }
+  }
+}
+
 /** Authenticate request and return session + user */
 export async function authenticateRequest(request: Request): Promise<{
   session: SessionData;
   user: Awaited<ReturnType<typeof db.user.findUnique>>;
 } | { error: Response }> {
-  const session = parseSession(request.headers.get('cookie'));
+  // Try cookie first
+  let session = parseSession(request.headers.get('cookie'));
+
+  // Fallback: check Authorization header (base64 encoded JSON)
+  if (!session) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.slice(7);
+        const jsonStr = safeBase64Decode(token);
+        if (jsonStr) {
+          session = JSON.parse(jsonStr) as SessionData;
+        }
+      } catch {
+        // invalid token
+      }
+    }
+  }
 
   if (!session) {
     return {
@@ -149,6 +181,11 @@ export async function authenticateRequest(request: Request): Promise<{
         headers: { 'Content-Type': 'application/json', 'Set-Cookie': getClearSessionCookie() },
       }),
     };
+  }
+
+  // Update session with latest school plan
+  if (user.school && session.schoolPlan !== user.school.plan) {
+    session.schoolPlan = user.school.plan;
   }
 
   return { session, user };
