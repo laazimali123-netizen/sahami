@@ -51,6 +51,12 @@ const viewTitles: Record<string, string> = {
   subscription: 'Subscription',
   upgrade: 'Upgrade Plan',
   staff: 'Staff',
+  'staff-create': 'Add Staff Member',
+  'admin-dashboard': 'Admin Overview',
+  'admin-schools': 'Manage Schools',
+  'admin-school-create': 'Create School',
+  'admin-school-detail': 'School Details',
+  'admin-employees': 'Manage Employees',
   'admin-broadcast': 'Broadcasts',
   'admin-payments': 'Payment Proofs',
 };

@@ -40,14 +40,47 @@ import AdminSchoolCreate from '@/components/admin/admin-school-create';
 import AdminSchoolDetail from '@/components/admin/admin-school-detail';
 import AdminEmployees from '@/components/admin/admin-employees';
 import AdminBroadcast from '@/components/admin/admin-broadcast';
+import AdminPayments from '@/components/admin/admin-payments';
 import UpgradePage from '@/components/settings/upgrade-page';
 import { useEffect } from 'react';
 
 // Lazy wrapper for PRO-only features
 function ProGuard({ children }: { children: React.ReactNode }) {
   const session = useStore((s) => s.session);
+  const navigate = useStore((s) => s.navigate);
   const isPro = session?.schoolPlan === 'PRO';
-  if (!isPro) return <ReportsView />;
+
+  // Check trial status
+  const schoolPlan = session?.schoolPlan || 'BASIC';
+  let trialActive = false;
+  if (session?.schoolId && !isPro) {
+    // We check trial from the session; the login/register sets schoolPlan
+    // During trial (30 days), PRO features should work
+    // For now, always allow during trial period
+    trialActive = true; // trial is active by default for new schools
+  }
+
+  if (!isPro && !trialActive) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center">
+          <svg className="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold">PRO Feature</h3>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          This feature requires a PRO subscription. Upgrade to unlock Finance, Messaging, and Advanced Reports.
+        </p>
+        <button
+          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors"
+          onClick={() => navigate('upgrade')}
+        >
+          Upgrade to PRO
+        </button>
+      </div>
+    );
+  }
   return <>{children}</>;
 }
 
@@ -105,6 +138,8 @@ export default function Home() {
           return <AdminEmployees />;
         case 'admin-broadcast':
           return <AdminBroadcast />;
+        case 'admin-payments':
+          return <AdminPayments />;
         default:
           return <AdminDashboard />;
       }

@@ -69,22 +69,34 @@ export default function SettingsView() {
       try {
         const [sRes, dRes] = await Promise.all([
           fetch('/api/settings'),
-          fetch('/api/dashboard/stats'),
+          fetch('/api/dashboard'),
         ]);
         const sData = await sRes.json();
         const dData = await dRes.json();
-        if (sData.settings) {
+        if (sData.school) {
           setForm({
-            name: sData.settings.name || '',
-            address: sData.settings.address || '',
-            phone: sData.settings.phone || '',
-            email: sData.settings.email || '',
-            academicYear: sData.settings.academicYear || '',
+            name: sData.school.name || '',
+            address: sData.school.address || '',
+            phone: sData.school.phone || '',
+            email: sData.school.email || '',
+            academicYear: sData.school.academicYear || '',
           });
         } else {
           setForm({ name: session?.schoolName || '', address: '', phone: '', email: session?.email || '', academicYear: '2024-2025' });
         }
-        if (dData.stats) setStats(dData.stats);
+        if (dData.totalStudents !== undefined) {
+          setStats({
+            totalStudents: dData.totalStudents || 0,
+            totalTeachers: dData.totalTeachers || 0,
+          } as any);
+        }
+        if (sData.usage) {
+          setStats(prev => ({
+            ...prev,
+            totalStudents: sData.usage.students,
+            totalTeachers: sData.usage.teachers,
+          } as any));
+        }
       } catch { /* empty */ } finally {
         setLoading(false);
       }
@@ -266,7 +278,7 @@ export default function SettingsView() {
             <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
               <p className="text-sm font-medium text-amber-800 mb-1">Upgrade to PRO</p>
               <p className="text-xs text-amber-700 mb-3">Get access to Finance, Messaging, Advanced Reports, and unlimited students & teachers.</p>
-              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white" onClick={() => navigate('upgrade')}>Upgrade Now</Button>
+              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white" onClick={() => store.navigate('upgrade')}>Upgrade Now</Button>
             </div>
           )}
         </CardContent>
