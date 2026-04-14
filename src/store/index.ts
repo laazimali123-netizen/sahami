@@ -88,6 +88,7 @@ export interface SessionData {
   schoolId: string | null;
   schoolName: string | null;
   schoolPlan: SubscriptionPlan | null;
+  trialStart: string | null;
 }
 
 export interface Student {

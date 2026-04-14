@@ -111,6 +111,9 @@ export default function Sidebar() {
   const isTeacher = session?.role === 'TEACHER';
   const isFinance = session?.role === 'FINANCE';
   const isPro = session?.schoolPlan === 'PRO';
+  const isTrialActive = session?.trialStart
+    ? (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24) <= 30
+    : false;
   const initials = session?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
 
   // Pick the right nav based on role
@@ -124,7 +127,8 @@ export default function Sidebar() {
 
   const handleNav = (item: NavItem) => {
     // FINANCE role has full access to finance regardless of pro
-    if (item.pro && !isPro && !isFinance) return;
+    // During trial period, PRO features are accessible
+    if (item.pro && !isPro && !isFinance && !isTrialActive) return;
     navigate(item.view);
     // Close sidebar on mobile
     if (window.innerWidth < 1024) {
@@ -151,7 +155,7 @@ export default function Sidebar() {
 
   const isLocked = (item: NavItem) => {
     if (isFinance && item.pro) return false;
-    return item.pro && !isPro;
+    return item.pro && !isPro && !isTrialActive;
   };
 
   const canSeeSettings = isOwner || isManager || isTeacher || isFinance;

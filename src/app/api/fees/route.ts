@@ -13,7 +13,13 @@ export async function GET(request: NextRequest) {
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
-  if (session.schoolPlan !== 'PRO') {
+  // Check PRO or active trial
+  const isTrialActive = session.trialStart
+    ? (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24) <= 30
+    : false;
+  const isFinance = session.role === 'FINANCE';
+
+  if (session.schoolPlan !== 'PRO' && !isTrialActive && !isFinance) {
     return new Response(JSON.stringify({ error: 'Finance module requires PRO plan' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
@@ -64,7 +70,13 @@ export async function POST(request: NextRequest) {
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
-  if (session.schoolPlan !== 'PRO') {
+  // Check PRO or active trial
+  const isTrialActive = session.trialStart
+    ? (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24) <= 30
+    : false;
+  const isFinance = session.role === 'FINANCE';
+
+  if (session.schoolPlan !== 'PRO' && !isTrialActive && !isFinance) {
     return new Response(JSON.stringify({ error: 'Finance module requires PRO plan' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
@@ -74,6 +86,13 @@ export async function POST(request: NextRequest) {
   if (!['OWNER', 'MANAGER'].includes(session.role)) {
     return new Response(JSON.stringify({ error: 'Only owners and managers can create fee records' }), {
       status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!session.schoolId) {
+    return new Response(JSON.stringify({ error: 'No school assigned' }), {
+      status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -95,7 +114,7 @@ export async function POST(request: NextRequest) {
         title,
         amount: parseFloat(amount),
         dueDate: dueDate || null,
-        schoolId: session.schoolId!,
+        schoolId: session.schoolId,
       },
       include: {
         student: { select: { firstName: true, lastName: true, studentId: true } },

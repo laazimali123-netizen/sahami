@@ -161,10 +161,16 @@ export default function SettingsView() {
 
   const isPro = session?.schoolPlan === 'PRO';
   const isOwner = session?.role === 'OWNER' || session?.role === 'MANAGER';
+  const isTrialActive = session?.trialStart
+    ? (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24) <= 30
+    : false;
+  const trialDaysLeft = session?.trialStart
+    ? Math.max(0, 30 - Math.floor((Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
   const studentCount = stats?.totalStudents || 0;
   const teacherCount = stats?.totalTeachers || 0;
-  const studentLimit = isPro ? 999 : 100;
-  const teacherLimit = isPro ? 999 : 20;
+  const studentLimit = isPro ? 500 : 100;
+  const teacherLimit = isPro ? 50 : 20;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -266,19 +272,26 @@ export default function SettingsView() {
               <div>
                 <p className="font-semibold">Current Plan</p>
                 <p className="text-sm text-muted-foreground">
-                  {isPro ? 'PRO — 1,500 ETB/month' : 'BASIC — Free'}
+                  {isPro ? 'PRO — 1,500 ETB/month' : isTrialActive ? `BASIC — Trial (${trialDaysLeft} days left)` : 'BASIC — Free'}
                 </p>
               </div>
             </div>
-            <Badge className={isPro ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}>
-              {session?.schoolPlan || 'BASIC'}
+            <Badge className={isPro ? 'bg-amber-100 text-amber-700' : isTrialActive ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'}>
+              {isPro ? 'PRO' : isTrialActive ? 'TRIAL' : 'BASIC'}
             </Badge>
           </div>
-          {!isPro && (
+          {!isPro && !isTrialActive && (
             <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
               <p className="text-sm font-medium text-amber-800 mb-1">Upgrade to PRO</p>
-              <p className="text-xs text-amber-700 mb-3">Get access to Finance, Messaging, Advanced Reports, and unlimited students & teachers.</p>
+              <p className="text-xs text-amber-700 mb-3">Get access to Finance, Messaging, Advanced Reports, and up to 500 students & 50 teachers.</p>
               <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white" onClick={() => store.navigate('upgrade')}>Upgrade Now</Button>
+            </div>
+          )}
+          {isTrialActive && !isPro && (
+            <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200">
+              <p className="text-sm font-medium text-emerald-800 mb-1">Free Trial Active</p>
+              <p className="text-xs text-emerald-700 mb-3">You have <strong>{trialDaysLeft} days</strong> remaining. Upgrade to PRO to keep all features after your trial.</p>
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => store.navigate('upgrade')}>Upgrade Now</Button>
             </div>
           )}
         </CardContent>
@@ -294,14 +307,14 @@ export default function SettingsView() {
           <div>
             <div className="flex justify-between text-sm mb-2">
               <span className="flex items-center gap-2"><GraduationCap className="h-4 w-4 text-muted-foreground" /> Students</span>
-              <span className="font-medium">{studentCount} / {studentLimit === 999 ? '∞' : studentLimit}</span>
+              <span className="font-medium">{studentCount} / {studentLimit}</span>
             </div>
             <Progress value={(studentCount / studentLimit) * 100} className="h-2" />
           </div>
           <div>
             <div className="flex justify-between text-sm mb-2">
               <span className="flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /> Teachers</span>
-              <span className="font-medium">{teacherCount} / {teacherLimit === 999 ? '∞' : teacherLimit}</span>
+              <span className="font-medium">{teacherCount} / {teacherLimit}</span>
             </div>
             <Progress value={(teacherCount / teacherLimit) * 100} className="h-2" />
           </div>

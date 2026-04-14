@@ -40,6 +40,7 @@ export interface SessionData {
   schoolId: string | null;
   schoolName: string | null;
   schoolPlan: string | null;
+  trialStart: string | null;
 }
 
 /** Role hierarchy for permission checks */
@@ -107,13 +108,14 @@ export function parseSession(cookieHeader: string | null): SessionData | null {
 /** Serialize session data to cookie value */
 export function serializeSession(session: SessionData): string {
   const jsonStr = JSON.stringify(session);
-  return Buffer.from(jsonStr).encode ? Buffer.from(jsonStr).toString('base64') : Buffer.from(jsonStr).toString('base64');
+  return Buffer.from(jsonStr).toString('base64');
 }
 
 /** Get session cookie header for response */
 export function getSessionCookie(session: SessionData): string {
   const value = serializeSession(session);
-  return `${SESSION_COOKIE_NAME}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`;
+  const isSecure = process.env.NODE_ENV === 'production';
+  return `${SESSION_COOKIE_NAME}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${isSecure ? '; Secure' : ''}`;
 }
 
 /** Get cookie header to clear session */
@@ -183,9 +185,17 @@ export async function authenticateRequest(request: Request): Promise<{
     };
   }
 
-  // Update session with latest school plan
-  if (user.school && session.schoolPlan !== user.school.plan) {
-    session.schoolPlan = user.school.plan;
+  // Update session with latest school plan and trial info
+  if (user.school) {
+    if (session.schoolPlan !== user.school.plan) {
+      session.schoolPlan = user.school.plan;
+    }
+    // Always update trialStart from database
+    if (user.school.trialStart) {
+      session.trialStart = user.school.trialStart instanceof Date
+        ? user.school.trialStart.toISOString()
+        : String(user.school.trialStart);
+    }
   }
 
   return { session, user };

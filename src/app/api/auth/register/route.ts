@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
       schoolId: school.id,
       schoolName: school.name,
       schoolPlan: school.plan,
+      trialStart: school.trialStart ? (school.trialStart instanceof Date ? school.trialStart.toISOString() : String(school.trialStart)) : null,
     };
 
     return new Response(JSON.stringify({
@@ -131,6 +132,7 @@ export async function POST(request: NextRequest) {
         schoolId: school.id,
         schoolName: school.name,
         schoolPlan: school.plan,
+        trialStart: school.trialStart ? (school.trialStart instanceof Date ? school.trialStart.toISOString() : String(school.trialStart)) : null,
       },
     }), {
       status: 201,

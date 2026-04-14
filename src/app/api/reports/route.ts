@@ -55,9 +55,12 @@ export async function GET(request: NextRequest) {
       { range: 'F (<60)', count: fCount, color: '#ef4444' },
     ];
 
-    // Fee collection stats (PRO only)
+    // Fee collection stats (PRO or trial)
     const feeStats = { totalExpected: 0, totalCollected: 0, pending: 0, overdue: 0 };
-    if (session.schoolPlan === 'PRO') {
+    const isTrialActive = session.trialStart
+      ? (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24) <= 30
+      : false;
+    if (session.schoolPlan === 'PRO' || isTrialActive) {
       const feeRecords = await db.feeRecord.findMany({
         where: { schoolId },
       });

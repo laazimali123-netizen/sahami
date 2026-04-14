@@ -44,6 +44,13 @@ export async function POST(request: NextRequest) {
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
+  if (!session.schoolId) {
+    return new Response(JSON.stringify({ error: 'No school assigned' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   if (!['OWNER', 'MANAGER'].includes(session.role)) {
     return new Response(JSON.stringify({ error: 'Only owners and managers can create classes' }), {
       status: 403,
@@ -69,7 +76,7 @@ export async function POST(request: NextRequest) {
         section,
         room: room || null,
         capacity: capacity || 30,
-        schoolId: session.schoolId!,
+        schoolId: session.schoolId,
         ...(subjectIds && subjectIds.length > 0 ? {
           classSubjects: {
             create: subjectIds.map((subjectId: string) => ({ subjectId })),

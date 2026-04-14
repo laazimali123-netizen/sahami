@@ -50,14 +50,13 @@ function ProGuard({ children }: { children: React.ReactNode }) {
   const navigate = useStore((s) => s.navigate);
   const isPro = session?.schoolPlan === 'PRO';
 
-  // Check trial status
-  const schoolPlan = session?.schoolPlan || 'BASIC';
+  // Check trial status from session.trialStart
   let trialActive = false;
-  if (session?.schoolId && !isPro) {
-    // We check trial from the session; the login/register sets schoolPlan
-    // During trial (30 days), PRO features should work
-    // For now, always allow during trial period
-    trialActive = true; // trial is active by default for new schools
+  if (session?.trialStart && !isPro) {
+    const trialStart = new Date(session.trialStart);
+    const now = Date.now();
+    const diffDays = (now - trialStart.getTime()) / (1000 * 60 * 60 * 24);
+    trialActive = diffDays <= 30;
   }
 
   if (!isPro && !trialActive) {

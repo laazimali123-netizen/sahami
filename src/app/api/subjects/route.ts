@@ -39,6 +39,13 @@ export async function POST(request: NextRequest) {
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
+  if (!session.schoolId) {
+    return new Response(JSON.stringify({ error: 'No school assigned' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   if (!['OWNER', 'MANAGER'].includes(session.role)) {
     return new Response(JSON.stringify({ error: 'Only owners and managers can create subjects' }), {
       status: 403,
@@ -62,7 +69,7 @@ export async function POST(request: NextRequest) {
         name,
         code: code.toUpperCase(),
         description: description || null,
-        schoolId: session.schoolId!,
+        schoolId: session.schoolId,
       },
     });
 

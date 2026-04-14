@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       schoolId: user.schoolId,
       schoolName: user.school?.name || null,
       schoolPlan: user.school?.plan || null,
+      trialStart: user.school?.trialStart ? (user.school.trialStart instanceof Date ? user.school.trialStart.toISOString() : String(user.school.trialStart)) : null,
     };
 
     // Set session cookie and return
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
         schoolId: user.schoolId,
         schoolName: user.school?.name || null,
         schoolPlan: user.school?.plan || null,
+        trialStart: user.school?.trialStart ? (user.school.trialStart instanceof Date ? user.school.trialStart.toISOString() : String(user.school.trialStart)) : null,
       },
     }), {
       status: 200,
