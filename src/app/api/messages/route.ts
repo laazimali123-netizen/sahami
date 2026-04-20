@@ -2,11 +2,23 @@
 // SAHAMI - Messages API (PRO TIER ONLY)
 // GET    /api/messages - List messages (sent/received)
 // POST   /api/messages - Send a message
+// PUT    /api/messages - Mark messages as read
 // ═══════════════════════════════════════════════════════════
 
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { authenticateRequest } from '@/lib/auth';
+
+/** Check if user has PRO or active 30-day trial */
+function canAccessPro(session: any): boolean {
+  if (session.schoolPlan === 'PRO') return true;
+  if (session.role === 'FINANCE') return true;
+  if (session.trialStart) {
+    const diffDays = (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays <= 30) return true;
+  }
+  return false;
+}
 
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request);
@@ -16,6 +28,13 @@ export async function GET(request: NextRequest) {
   if (!session.schoolId) {
     return new Response(JSON.stringify({ error: 'No school assigned' }), {
       status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!canAccessPro(session)) {
+    return new Response(JSON.stringify({ error: 'Messaging requires PRO plan. Upgrade to unlock this feature.' }), {
+      status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -58,6 +77,13 @@ export async function POST(request: NextRequest) {
   if (!session.schoolId) {
     return new Response(JSON.stringify({ error: 'No school assigned' }), {
       status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!canAccessPro(session)) {
+    return new Response(JSON.stringify({ error: 'Messaging requires PRO plan. Upgrade to unlock this feature.' }), {
+      status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
   }

@@ -12,8 +12,14 @@ export async function POST(request: NextRequest) {
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
-  if (session.schoolPlan !== 'PRO') {
-    return new Response(JSON.stringify({ error: 'Finance module requires PRO plan' }), {
+  // Check PRO or active trial
+  const isTrialActive = session.trialStart
+    ? (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24) <= 30
+    : false;
+  const isFinance = session.role === 'FINANCE';
+
+  if (session.schoolPlan !== 'PRO' && !isTrialActive && !isFinance) {
+    return new Response(JSON.stringify({ error: 'Finance module requires PRO plan. Upgrade to unlock this feature.' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -22,6 +28,13 @@ export async function POST(request: NextRequest) {
   if (!['OWNER', 'MANAGER'].includes(session.role)) {
     return new Response(JSON.stringify({ error: 'Only owners and managers can record payments' }), {
       status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!session.schoolId) {
+    return new Response(JSON.stringify({ error: 'No school assigned' }), {
+      status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   }
