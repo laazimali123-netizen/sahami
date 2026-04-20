@@ -14,6 +14,7 @@ import {
 import {
   Sparkles, Clock, CheckCircle2, Loader2, ArrowLeft,
   CreditCard, Smartphone, Building, Gift, AlertTriangle,
+  Upload, X, ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -23,7 +24,9 @@ export default function UpgradePage() {
   const session = useStore((s) => s.session);
   const navigate = useStore((s) => s.navigate);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [screenshot, setScreenshot] = useState<File | null>(null);
   const [schoolData, setSchoolData] = useState<any>(null);
 
   const [form, setForm] = useState({
@@ -66,7 +69,25 @@ export default function UpgradePage() {
       return;
     }
     setLoading(true);
+    setUploading(true);
     try {
+      let screenshotUrl: string | null = null;
+      if (screenshot) {
+        const uploadForm = new FormData();
+        uploadForm.append('file', screenshot);
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadForm,
+        });
+        if (!uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          toast.error(uploadData.error || 'Failed to upload screenshot');
+          return;
+        }
+        const uploadData = await uploadRes.json();
+        screenshotUrl = uploadData.url;
+      }
+      
       const res = await fetch('/api/payments/proof', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,6 +96,7 @@ export default function UpgradePage() {
           amount: 1500,
           method: form.method,
           contactInfo: form.contactInfo.trim(),
+          screenshotUrl,
         }),
       });
       const data = await res.json();
@@ -88,6 +110,7 @@ export default function UpgradePage() {
       toast.error('Network error. Please try again.');
     } finally {
       setLoading(false);
+      setUploading(false);
     }
   };
 
@@ -307,13 +330,38 @@ export default function UpgradePage() {
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="screenshot">Payment Screenshot (Proof)</Label>
+                  <div className="relative">
+                    <Input
+                      id="screenshot"
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                  {screenshot && (
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 border">
+                      <ImageIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="text-sm truncate flex-1">{screenshot.name}</span>
+                      <button type="button" onClick={() => setScreenshot(null)} className="text-muted-foreground hover:text-foreground">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Upload a screenshot of your payment receipt as proof (PNG, JPG, max 5MB)
+                  </p>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full bg-emerald-600 hover:bg-emerald-700 font-semibold"
-                  disabled={loading || !form.method}
+                  disabled={loading || uploading || !form.method}
                 >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {loading ? 'Submitting...' : 'I Have Sent the Payment'}
+                  {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {loading ? 'Submitting...' : uploading ? 'Uploading...' : 'Submit Payment Proof'}
                 </Button>
               </form>
             ) : (

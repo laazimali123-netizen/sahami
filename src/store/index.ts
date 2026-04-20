@@ -73,6 +73,7 @@ export type AppView =
   | 'admin-employees'
   | 'admin-broadcast'
   | 'admin-payments'
+  | 'admin-cms'
   | 'staff'
   | 'staff-create'
   | 'events'

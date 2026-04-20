@@ -35,15 +35,25 @@ export default function StudentForm() {
     status: existingStudent?.status || 'ACTIVE',
   });
 
+  const [classesAvailable, setClassesAvailable] = useState(true);
+
   useEffect(() => {
     async function loadClasses() {
       try {
         const res = await fetch('/api/classes');
+        if (!res.ok) {
+          setClassesAvailable(false);
+          return;
+        }
         const data = await res.json();
         if (data.classes) store.setClasses(data.classes);
-      } catch { /* empty */ }
+        setClassesAvailable(true);
+      } catch {
+        setClassesAvailable(false);
+      }
     }
     if (store.classes.length === 0) loadClasses();
+    else setClassesAvailable(true);
   }, [store]);
 
   const handleChange = (field: string, value: string) => {
@@ -189,19 +199,28 @@ export default function StudentForm() {
             <CardTitle className="text-base">Enrollment</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <Label>Class</Label>
-              <Select value={form.classId} onValueChange={(v) => handleChange('classId', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {store.classes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name} ({c.gradeLevel}-{c.section})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {classesAvailable && store.classes.length > 0 ? (
+              <div className="space-y-2">
+                <Label>Class (optional)</Label>
+                <Select value={form.classId} onValueChange={(v) => handleChange('classId', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select class (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {store.classes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name} ({c.gradeLevel}-{c.section})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <p className="text-sm text-amber-700">
+                  Class assignment requires a PRO plan. Students can still be created and assigned to classes later after upgrading.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

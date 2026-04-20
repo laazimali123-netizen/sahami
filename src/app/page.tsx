@@ -42,6 +42,7 @@ import AdminEmployees from '@/components/admin/admin-employees';
 import AdminBroadcast from '@/components/admin/admin-broadcast';
 import AdminPayments from '@/components/admin/admin-payments';
 import UpgradePage from '@/components/settings/upgrade-page';
+import AdminCMS from '@/components/admin/admin-cms';
 import { useEffect } from 'react';
 
 // Lazy wrapper for PRO-only features
@@ -139,6 +140,8 @@ export default function Home() {
           return <AdminBroadcast />;
         case 'admin-payments':
           return <AdminPayments />;
+        case 'admin-cms':
+          return <AdminCMS />;
         default:
           return <AdminDashboard />;
       }

@@ -15,7 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, Loader2, Users } from 'lucide-react';
+import { ArrowLeft, Loader2, Users, CheckCircle2, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AttendanceMark() {
@@ -26,6 +26,7 @@ export default function AttendanceMark() {
   const [students, setStudents] = useState<any[]>([]);
   const [records, setRecords] = useState<Record<string, string>>({});
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showAbsentOnly, setShowAbsentOnly] = useState(false);
 
   useEffect(() => {
     async function loadClasses() {
@@ -49,13 +50,24 @@ export default function AttendanceMark() {
         const data = await res.json();
         const list = data.students || [];
         setStudents(list);
+        // Default all to PRESENT
         setRecords(Object.fromEntries(list.map((s: any) => [s.id, 'PRESENT'])));
       } catch { /* empty */ }
     }
     loadStudents();
   }, [selectedClass]);
 
-  const handleSubmit = async () => {
+  const handleMarkAllPresent = () => {
+    setRecords(Object.fromEntries(students.map((s: any) => [s.id, 'PRESENT'])));
+    toast.success('All students marked as Present');
+  };
+
+  const handleMarkAllAbsent = () => {
+    setRecords(Object.fromEntries(students.map((s: any) => [s.id, 'ABSENT'])));
+    toast.success('All students marked as Absent');
+  };
+
+  const handleSave = async () => {
     if (!selectedClass || students.length === 0) {
       toast.error('Please select a class with students');
       return;
@@ -82,6 +94,16 @@ export default function AttendanceMark() {
   };
 
   if (loading) return <Skeleton className="h-64 w-full" />;
+
+  const presentCount = Object.values(records).filter(v => v === 'PRESENT').length;
+  const absentCount = Object.values(records).filter(v => v === 'ABSENT').length;
+  const lateCount = Object.values(records).filter(v => v === 'LATE').length;
+  const excusedCount = Object.values(records).filter(v => v === 'EXCUSED').length;
+  const markedCount = presentCount + absentCount + lateCount + excusedCount;
+
+  const filteredStudents = showAbsentOnly
+    ? students.filter((s) => records[s.id] && records[s.id] !== 'PRESENT')
+    : students;
 
   const statusOptions = [
     { value: 'PRESENT', label: 'Present', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -130,77 +152,128 @@ export default function AttendanceMark() {
       </Card>
 
       {selectedClass && students.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Students ({students.length})</CardTitle>
-              <div className="flex gap-2">
-                {statusOptions.map((opt) => (
-                  <Badge key={opt.value} variant="outline" className={`${opt.color} text-xs`}>{opt.label}</Badge>
-                ))}
+        <>
+          {/* Stats Bar */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-3">
+                  <Badge className="bg-muted px-3 py-1">
+                    Total: {students.length}
+                  </Badge>
+                  <Badge className="bg-emerald-100 text-emerald-700 border-0 px-3 py-1">
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Present: {presentCount}
+                  </Badge>
+                  <Badge className="bg-red-100 text-red-700 border-0 px-3 py-1">
+                    <UserX className="h-3 w-3 mr-1" /> Absent: {absentCount}
+                  </Badge>
+                  <Badge className="bg-amber-100 text-amber-700 border-0 px-3 py-1">
+                    Late: {lateCount}
+                  </Badge>
+                  <Badge className="bg-violet-100 text-violet-700 border-0 px-3 py-1">
+                    Excused: {excusedCount}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={handleMarkAllPresent} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+                    <CheckCircle2 className="h-4 w-4 mr-1" /> All Present
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleMarkAllAbsent} className="text-red-600 border-red-200 hover:bg-red-50">
+                    <UserX className="h-4 w-4 mr-1" /> All Absent
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={showAbsentOnly ? 'default' : 'outline'}
+                    onClick={() => setShowAbsentOnly(!showAbsentOnly)}
+                    className={showAbsentOnly ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}
+                  >
+                    {showAbsentOnly ? 'Show All' : 'Only Absent/Late'}
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">
-                          {s.firstName[0]}{s.lastName[0]}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{s.firstName} {s.lastName}</p>
-                          <p className="text-xs text-muted-foreground">{s.studentId}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <RadioGroup
-                        value={records[s.id]}
-                        onValueChange={(v) => setRecords({ ...records, [s.id]: v })}
-                        className="flex items-center justify-center gap-2"
-                      >
-                        {statusOptions.map((opt) => (
-                          <Label
-                            key={opt.value}
-                            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs cursor-pointer border transition-colors ${records[s.id] === opt.value ? opt.color : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'}`}
+            </CardContent>
+          </Card>
+
+          {/* Student List */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">
+                  Students
+                  {showAbsentOnly && ` (Absent/Late only: ${filteredStudents.length})`}
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {filteredStudents.length === 0 && showAbsentOnly ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-emerald-300" />
+                  <p className="text-sm font-medium">All students are present!</p>
+                  <p className="text-xs mt-1">No absent, late, or excused students.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">#</TableHead>
+                      <TableHead>Student</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredStudents.map((s, idx) => (
+                      <TableRow key={s.id}>
+                        <TableCell className="text-muted-foreground text-sm">{idx + 1}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">
+                              {s.firstName[0]}{s.lastName[0]}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{s.firstName} {s.lastName}</p>
+                              <p className="text-xs text-muted-foreground">{s.studentId}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <RadioGroup
+                            value={records[s.id]}
+                            onValueChange={(v) => setRecords({ ...records, [s.id]: v })}
+                            className="flex items-center justify-center gap-1"
                           >
-                            <RadioGroupItem value={opt.value} className="sr-only" />
-                            {opt.label}
-                          </Label>
-                        ))}
-                      </RadioGroup>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                            {statusOptions.map((opt) => (
+                              <Label
+                                key={opt.value}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs cursor-pointer border transition-colors ${records[s.id] === opt.value ? opt.color : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'}`}
+                              >
+                                <RadioGroupItem value={opt.value} className="sr-only" />
+                                {opt.label}
+                              </Label>
+                            ))}
+                          </RadioGroup>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSave} disabled={submitting}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Attendance ({markedCount} students)
+            </Button>
+          </div>
+        </>
       )}
 
       {selectedClass && students.length === 0 && (
         <div className="text-center py-16 text-muted-foreground">
           <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="text-sm">No students enrolled in this class</p>
-        </div>
-      )}
-
-      {selectedClass && students.length > 0 && (
-        <div className="flex justify-end">
-          <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSubmit} disabled={submitting}>
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Attendance
-          </Button>
         </div>
       )}
     </div>

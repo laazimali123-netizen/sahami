@@ -94,6 +94,7 @@ const adminNav: NavItem[] = [
   { view: 'admin-employees', label: 'Employees', icon: UserCog },
   { view: 'admin-broadcast', label: 'Broadcasts', icon: Megaphone },
   { view: 'admin-payments', label: 'Payment Proofs', icon: DollarSign },
+  { view: 'admin-cms', label: 'Site Content', icon: Settings },
 ];
 
 export default function Sidebar() {

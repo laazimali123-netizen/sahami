@@ -2,39 +2,45 @@
 
 import { useStore } from '@/store';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Users, ClipboardCheck, BarChart3, Calendar, Megaphone, Check, ArrowRight } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { GraduationCap, Users, ClipboardCheck, BarChart3, Calendar, Megaphone, Check, ArrowRight, BookOpen, School, DollarSign, MessageSquare, Lock } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 const features = [
   { icon: Users, title: 'Student Management', desc: 'Track enrollment, profiles, and academic history for every student.' },
   { icon: Users, title: 'Teacher Management', desc: 'Manage staff assignments, schedules, and performance records.' },
-  { icon: ClipboardCheck, title: 'Attendance Tracking', desc: 'Real-time attendance with automated reports and alerts.' },
+  { icon: ClipboardCheck, title: 'Attendance Tracking', desc: 'Real-time attendance with automated reports and quick mark-all-present.' },
   { icon: BarChart3, title: 'Gradebook', desc: 'Comprehensive grading system with customizable rubrics and analytics.' },
   { icon: Calendar, title: 'Schedule & Timetable', desc: 'Intelligent scheduling that avoids conflicts and optimizes resources.' },
   { icon: Megaphone, title: 'Announcements', desc: 'Keep everyone informed with targeted announcements and notifications.' },
 ];
 
 const basicFeatures = [
-  'Student & Teacher Management',
-  'Attendance Tracking',
-  'Gradebook & Reports',
-  'Class Management',
-  'Subject Management',
-  'Timetable Scheduling',
-  'Announcements',
+  'Student Management',
+  'Teacher Management',
+  'Dashboard & Overview',
+  'Account Settings',
+  'Password Management',
   'Up to 100 Students',
   'Up to 20 Teachers',
 ];
 
 const proFeatures = [
-  ...basicFeatures.slice(0, 6),
+  'Student & Teacher Management',
+  'Class & Subject Management',
+  'Attendance Tracking',
+  'Gradebook & Reports',
+  'Timetable Scheduling',
+  'Events & Exams',
+  'Homework & Behavior Tracking',
+  'Announcements',
+  'Internal Messaging',
   'Financial Management',
   'Fee Tracking & Payments',
-  'Internal Messaging',
+  'Staff Management',
   'Advanced Analytics',
+  'Up to 500 Students',
+  'Up to 50 Teachers',
   'Priority Support',
-  'Unlimited Students',
-  'Unlimited Teachers',
 ];
 
 /** Progressive enhancement: fade-in elements when they scroll into view */
@@ -64,10 +70,20 @@ function useScrollReveal() {
 export default function LandingPage() {
   const navigate = useStore((s) => s.navigate);
   const scrollRef = useScrollReveal();
+  const [siteConfig, setSiteConfig] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/site-config')
+      .then(r => r.json())
+      .then(d => { if (d.config) setSiteConfig(d.config); })
+      .catch(() => {});
+  }, []);
+
+  const proPrice = siteConfig?.proPrice || '1,500';
 
   return (
     <div className="min-h-screen bg-background" ref={scrollRef}>
-      {/* Hero Section — no animation, content visible immediately */}
+      {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-400 opacity-95" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.1)_0%,_transparent_50%)]" />
@@ -91,14 +107,17 @@ export default function LandingPage() {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-white/15 text-white/90 text-sm font-medium backdrop-blur-sm">
               <GraduationCap className="h-4 w-4" />
-              Trusted by 500+ schools worldwide
+              {siteConfig?.heroBadge || 'Trusted by 500+ schools worldwide'}
             </div>
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
-              The Smartest Way to<br />
-              <span className="text-emerald-100">Manage Your School</span>
+              {siteConfig?.heroTitle ? (
+                <span dangerouslySetInnerHTML={{ __html: siteConfig.heroTitle }} />
+              ) : (
+                <>The Smartest Way to<br /><span className="text-emerald-100">Manage Your School</span></>
+              )}
             </h1>
             <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Streamline every aspect of school administration — from student enrollment to grade tracking, attendance, scheduling, and beyond.
+              {siteConfig?.heroSubtitle || 'Streamline every aspect of school administration — from student enrollment to grade tracking, attendance, scheduling, and beyond.'}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button
@@ -156,13 +175,13 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-14 animate-on-scroll">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-muted-foreground text-lg">Start free, upgrade when you need more power.</p>
+            <p className="text-muted-foreground text-lg">Start free with a 30-day PRO trial. Upgrade when you need more power.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Basic Plan */}
             <div className="p-8 rounded-2xl border bg-card shadow-sm animate-on-scroll">
-              <h3 className="text-xl font-bold mb-1">BASIC</h3>
-              <p className="text-muted-foreground text-sm mb-4">For small schools getting started</p>
+              <h3 className="text-xl font-bold mb-1">BASIC — Free</h3>
+              <p className="text-muted-foreground text-sm mb-4">For small schools getting started. Includes a 30-day PRO trial.</p>
               <div className="flex items-baseline gap-1 mb-6">
                 <span className="text-4xl font-bold">Free</span>
               </div>
@@ -174,6 +193,11 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 mb-4">
+                <p className="text-xs text-emerald-700 text-center font-medium">
+                  30-day PRO trial included — try all features free!
+                </p>
+              </div>
               <Button className="w-full" variant="outline" onClick={() => navigate('register', { plan: 'BASIC' })}>
                 Get Started Free
               </Button>
@@ -185,9 +209,9 @@ export default function LandingPage() {
                 RECOMMENDED
               </div>
               <h3 className="text-xl font-bold mb-1">PRO</h3>
-              <p className="text-muted-foreground text-sm mb-4">For growing schools that need more</p>
+              <p className="text-muted-foreground text-sm mb-4">For growing schools that need the full experience</p>
               <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-4xl font-bold">$29</span>
+                <span className="text-4xl font-bold">{proPrice} ETB</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
               <ul className="space-y-3 mb-8">
@@ -202,6 +226,30 @@ export default function LandingPage() {
                 Start PRO Trial
               </Button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What happens after trial */}
+      <section className="py-20">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center mb-14 animate-on-scroll">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { step: '1', title: 'Sign Up Free', desc: 'Create your school account and get instant access to all PRO features for 30 days.' },
+              { step: '2', title: 'Choose Your Plan', desc: 'After the trial, upgrade to PRO for 1,500 ETB/month or continue with free BASIC (Students, Teachers, Settings only).' },
+              { step: '3', title: 'Pay & Grow', desc: 'Pay via Telebirr, Kaafi, or CBE. Send proof, get approved, and unlock everything.' },
+            ].map((item) => (
+              <div key={item.step} className="text-center p-6 animate-on-scroll">
+                <div className="h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl font-bold mx-auto mb-4">
+                  {item.step}
+                </div>
+                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                <p className="text-muted-foreground text-sm">{item.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

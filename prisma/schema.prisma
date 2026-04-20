@@ -434,6 +434,17 @@ model Notification {
 }
 
 // ─────────────────────────────────────────────────────────────
+// SITE CONFIG: Editable website content (pricing, features, etc.)
+// ─────────────────────────────────────────────────────────────
+model SiteConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────
 // PAYMENT PROOF: School payment proof for manual verification
 // ─────────────────────────────────────────────────────────────
 model PaymentProof {

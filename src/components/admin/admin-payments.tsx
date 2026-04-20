@@ -189,6 +189,7 @@ export default function AdminPayments() {
                     <TableHead>Method</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Contact</TableHead>
+                    <TableHead>Proof</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="w-24">Actions</TableHead>
@@ -207,6 +208,18 @@ export default function AdminPayments() {
                       </TableCell>
                       <TableCell className="font-semibold">{proof.amount.toLocaleString()} ETB</TableCell>
                       <TableCell className="text-sm">{proof.contactInfo}</TableCell>
+                      <TableCell>
+                        {proof.screenshotUrl ? (
+                          <button
+                            onClick={() => setReviewDialog({ open: true, proof, action: 'APPROVED' })}
+                            className="text-emerald-600 hover:text-emerald-700 text-xs font-medium underline"
+                          >
+                            View
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">None</span>
+                        )}
+                      </TableCell>
                       <TableCell>{statusBadge(proof.status)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(proof.createdAt).toLocaleDateString()}
@@ -286,6 +299,19 @@ export default function AdminPayments() {
                   <span>{reviewDialog.proof.contactInfo}</span>
                 </div>
               </div>
+
+              {reviewDialog.proof.screenshotUrl && (
+                <div className="space-y-2">
+                  <Label>Payment Screenshot</Label>
+                  <div className="rounded-lg overflow-hidden border bg-muted/30">
+                    <img
+                      src={reviewDialog.proof.screenshotUrl}
+                      alt="Payment proof"
+                      className="w-full max-h-64 object-contain bg-white"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Notes (optional)</Label>
