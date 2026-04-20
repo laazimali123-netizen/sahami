@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { plan, amount, method, contactInfo } = body;
+    const { plan, amount, method, contactInfo, screenshotUrl } = body;
 
     if (!plan || !amount || !method || !contactInfo) {
       return new Response(JSON.stringify({ error: 'plan, amount, method, and contactInfo are required' }), {
@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
         amount: parseFloat(amount),
         method,
         contactInfo,
+        screenshotUrl: screenshotUrl || null,
       },
     });
 

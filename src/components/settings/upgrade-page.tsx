@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const PRO_PRICE = '1,500';
+const PRO_PRICE_DEFAULT = '1,500';
 
 export default function UpgradePage() {
   const session = useStore((s) => s.session);
@@ -28,6 +28,7 @@ export default function UpgradePage() {
   const [submitted, setSubmitted] = useState(false);
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [schoolData, setSchoolData] = useState<any>(null);
+  const [siteConfig, setSiteConfig] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
     method: '',
@@ -37,21 +38,27 @@ export default function UpgradePage() {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const res = await fetch('/api/settings');
-        const data = await res.json();
+        const [settingsRes, configRes] = await Promise.all([
+          fetch('/api/settings'),
+          fetch('/api/site-config'),
+        ]);
+        const data = await settingsRes.json();
         if (data.school) setSchoolData(data.school);
+        const configData = await configRes.json();
+        if (configData.config) setSiteConfig(configData.config);
       } catch { /* empty */ }
     }
-    if (session?.schoolId) loadSettings();
+    loadSettings();
   }, [session?.schoolId]);
 
-  // Calculate trial status
+  // Calculate trial status (trial days configurable via CMS)
+  const trialDays = parseInt(siteConfig.trialDays) || 30;
   const trialStart = schoolData?.trialStart ? new Date(schoolData.trialStart) : null;
   const isTrialActive = trialStart
-    ? (Date.now() - trialStart.getTime()) / (1000 * 60 * 60 * 24) <= 30
+    ? (Date.now() - trialStart.getTime()) / (1000 * 60 * 60 * 24) <= trialDays
     : false;
   const trialDaysLeft = trialStart
-    ? Math.max(0, 30 - Math.floor((Date.now() - trialStart.getTime()) / (1000 * 60 * 60 * 24)))
+    ? Math.max(0, trialDays - Math.floor((Date.now() - trialStart.getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
   const isPro = session?.schoolPlan === 'PRO';
   const needsUpgrade = !isPro && !isTrialActive;
@@ -93,7 +100,7 @@ export default function UpgradePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           plan: 'PRO',
-          amount: 1500,
+          amount: parseFloat((siteConfig.proPrice || PRO_PRICE_DEFAULT).replace(/,/g, '')),
           method: form.method,
           contactInfo: form.contactInfo.trim(),
           screenshotUrl,
@@ -114,10 +121,20 @@ export default function UpgradePage() {
     }
   };
 
+  // Read payment accounts from CMS site config, fall back to defaults
   const paymentAccounts: Record<string, { account: string; name: string }> = {
-    EBIRR: { account: '0911223344', name: 'SAHAMI Admin' },
-    KAAFII: { account: '0911223344', name: 'SAHAMI Admin' },
-    CBE: { account: '1000123456789', name: 'SAHAMI Technology PLC' },
+    EBIRR: {
+      account: siteConfig.paymentTelebirr || '0911223344',
+      name: siteConfig.paymentTelebirrName || 'SAHAMI Admin',
+    },
+    KAAFII: {
+      account: siteConfig.paymentKaafi || '0911223344',
+      name: siteConfig.paymentKaafiName || 'SAHAMI Admin',
+    },
+    CBE: {
+      account: siteConfig.paymentCBE || '1000123456789',
+      name: siteConfig.paymentCBEName || 'SAHAMI Technology PLC',
+    },
   };
 
   return (
@@ -174,7 +191,7 @@ export default function UpgradePage() {
               <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                  style={{ width: `${(trialDaysLeft / 30) * 100}%` }}
+                  style={{ width: `${(trialDaysLeft / trialDays) * 100}%` }}
                 />
               </div>
             </div>
@@ -185,7 +202,7 @@ export default function UpgradePage() {
             <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 mt-4">
               <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
               <p className="text-sm text-amber-700">
-                Your 30-day free trial has expired. Upgrade to PRO to unlock Classes, Subjects, Attendance, Grades, and all other features.
+                Your {trialDays}-day free trial has expired. Upgrade to PRO to unlock Classes, Subjects, Attendance, Grades, and all other features.
               </p>
             </div>
           )}
@@ -223,7 +240,7 @@ export default function UpgradePage() {
           <Separator className="my-4" />
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-2xl font-bold text-emerald-600">{PRO_PRICE} ETB</span>
+              <span className="text-2xl font-bold text-emerald-600">{siteConfig.proPrice || PRO_PRICE_DEFAULT} ETB</span>
               <span className="text-muted-foreground text-sm">/month</span>
             </div>
           </div>
@@ -271,7 +288,7 @@ export default function UpgradePage() {
           <CardHeader>
             <CardTitle className="text-base">Upgrade to PRO</CardTitle>
             <CardDescription>
-              {PRO_PRICE} ETB/month — Pay using one of the methods below
+              {siteConfig.proPrice || PRO_PRICE_DEFAULT} ETB/month — Pay using one of the methods below
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -311,7 +328,7 @@ export default function UpgradePage() {
                       <Badge variant="outline">{form.method}</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Amount: <strong>{PRO_PRICE} ETB</strong> for PRO plan
+                      Amount: <strong>{siteConfig.proPrice || PRO_PRICE_DEFAULT} ETB</strong> for PRO plan
                     </p>
                   </div>
                 )}

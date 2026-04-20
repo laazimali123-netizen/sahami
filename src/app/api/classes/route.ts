@@ -8,14 +8,15 @@ import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { authenticateRequest, requireProAccess } from '@/lib/auth';
 
+// NOTE: GET is always allowed — student forms and attendance selectors need class lists.
+// Only POST (creating classes) requires PRO.
+
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
-  const proCheck = requireProAccess(session);
-  if (proCheck) return proCheck;
-
+  // GET always works — class list needed by student forms, attendance, etc.
   if (!session.schoolId) {
     return new Response(JSON.stringify({ error: 'No school assigned' }), {
       status: 400,
