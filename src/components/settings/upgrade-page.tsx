@@ -162,7 +162,7 @@ export default function UpgradePage() {
             <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 mt-4">
               <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
               <p className="text-sm text-amber-700">
-                Your 30-day free trial has expired. Upgrade to PRO to keep using Finance, Messaging, and Advanced Reports.
+                Your 30-day free trial has expired. Upgrade to PRO to unlock Classes, Subjects, Attendance, Grades, and all other features.
               </p>
             </div>
           )}
@@ -178,9 +178,15 @@ export default function UpgradePage() {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
+              'Class & Subject Management',
+              'Attendance Tracking',
+              'Grade Book & Reports',
+              'Schedule & Timetable',
+              'Events & Exams',
+              'Homework & Behavior',
+              'Announcements & Messages',
               'Finance & Fee Management',
-              'Staff Messaging',
-              'Advanced Reports & Analytics',
+              'Staff Management',
               'Up to 500 Students',
               'Up to 50 Teachers',
               'Priority Support',

@@ -69,7 +69,7 @@ function ProGuard({ children }: { children: React.ReactNode }) {
         </div>
         <h3 className="text-lg font-semibold">PRO Feature</h3>
         <p className="text-sm text-muted-foreground text-center max-w-md">
-          This feature requires a PRO subscription. Upgrade to unlock Finance, Messaging, and Advanced Reports.
+          This feature requires a PRO subscription. FREE plans include Students, Teachers, Settings, and Dashboard. Upgrade to unlock all features.
         </p>
         <button
           className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -161,33 +161,33 @@ export default function Home() {
       case 'teacher-detail':
         return <TeacherDetail />;
       case 'classes':
-        return <ClassList />;
+        return <ProGuard><ClassList /></ProGuard>;
       case 'class-form':
-        return <ClassForm />;
+        return <ProGuard><ClassForm /></ProGuard>;
       case 'class-detail':
-        return <ClassDetail />;
+        return <ProGuard><ClassDetail /></ProGuard>;
       case 'subjects':
-        return <SubjectList />;
+        return <ProGuard><SubjectList /></ProGuard>;
       case 'attendance':
-        return <AttendanceList />;
+        return <ProGuard><AttendanceList /></ProGuard>;
       case 'attendance-mark':
-        return <AttendanceMark />;
+        return <ProGuard><AttendanceMark /></ProGuard>;
       case 'grades':
-        return <GradeList />;
+        return <ProGuard><GradeList /></ProGuard>;
       case 'timetable':
-        return <TimetableView />;
+        return <ProGuard><TimetableView /></ProGuard>;
       case 'events':
-        return <EventList />;
+        return <ProGuard><EventList /></ProGuard>;
       case 'homework':
-        return <HomeworkList />;
+        return <ProGuard><HomeworkList /></ProGuard>;
       case 'behavior':
-        return <BehaviorList />;
+        return <ProGuard><BehaviorList /></ProGuard>;
       case 'exams':
-        return <ExamList />;
+        return <ProGuard><ExamList /></ProGuard>;
       case 'announcements':
-        return <AnnouncementList />;
+        return <ProGuard><AnnouncementList /></ProGuard>;
       case 'announcement-form':
-        return <AnnouncementForm />;
+        return <ProGuard><AnnouncementForm /></ProGuard>;
       case 'messages':
         return <ProGuard><MessageList /></ProGuard>;
       case 'message-compose':
@@ -197,9 +197,9 @@ export default function Home() {
       case 'fee-form':
         return <ProGuard><FeeForm /></ProGuard>;
       case 'reports':
-        return <ReportsView />;
+        return <ProGuard><ReportsView /></ProGuard>;
       case 'staff':
-        return <StaffList />;
+        return <ProGuard><StaffList /></ProGuard>;
       case 'settings':
         return <SettingsView />;
       case 'upgrade':

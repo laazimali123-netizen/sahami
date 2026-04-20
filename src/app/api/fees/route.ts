@@ -6,25 +6,15 @@
 
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { authenticateRequest } from '@/lib/auth';
+import { authenticateRequest, requireProAccess } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
-  // Check PRO or active trial
-  const isTrialActive = session.trialStart
-    ? (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24) <= 30
-    : false;
-  const isFinance = session.role === 'FINANCE';
-
-  if (session.schoolPlan !== 'PRO' && !isTrialActive && !isFinance) {
-    return new Response(JSON.stringify({ error: 'Finance module requires PRO plan' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  const proCheck = requireProAccess(session);
+  if (proCheck) return proCheck;
 
   if (!session.schoolId) {
     return new Response(JSON.stringify({ error: 'No school assigned' }), {
@@ -70,18 +60,8 @@ export async function POST(request: NextRequest) {
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
-  // Check PRO or active trial
-  const isTrialActive = session.trialStart
-    ? (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24) <= 30
-    : false;
-  const isFinance = session.role === 'FINANCE';
-
-  if (session.schoolPlan !== 'PRO' && !isTrialActive && !isFinance) {
-    return new Response(JSON.stringify({ error: 'Finance module requires PRO plan' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  const proCheck = requireProAccess(session);
+  if (proCheck) return proCheck;
 
   if (!['OWNER', 'MANAGER'].includes(session.role)) {
     return new Response(JSON.stringify({ error: 'Only owners and managers can create fee records' }), {

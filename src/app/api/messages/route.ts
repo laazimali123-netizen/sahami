@@ -7,34 +7,19 @@
 
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { authenticateRequest } from '@/lib/auth';
-
-/** Check if user has PRO or active 30-day trial */
-function canAccessPro(session: any): boolean {
-  if (session.schoolPlan === 'PRO') return true;
-  if (session.role === 'FINANCE') return true;
-  if (session.trialStart) {
-    const diffDays = (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24);
-    if (diffDays <= 30) return true;
-  }
-  return false;
-}
+import { authenticateRequest, requireProAccess } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if ('error' in auth) return auth.error;
   const { session } = auth;
 
+  const proCheck = requireProAccess(session);
+  if (proCheck) return proCheck;
+
   if (!session.schoolId) {
     return new Response(JSON.stringify({ error: 'No school assigned' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  if (!canAccessPro(session)) {
-    return new Response(JSON.stringify({ error: 'Messaging requires PRO plan. Upgrade to unlock this feature.' }), {
-      status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -81,12 +66,8 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  if (!canAccessPro(session)) {
-    return new Response(JSON.stringify({ error: 'Messaging requires PRO plan. Upgrade to unlock this feature.' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  const proCheck = requireProAccess(session);
+  if (proCheck) return proCheck;
 
   try {
     const body = await request.json();

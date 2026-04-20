@@ -1,12 +1,15 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { authenticateRequest } from '@/lib/auth';
+import { authenticateRequest, requireProAccess } from '@/lib/auth';
 
 // GET /api/reports — school-wide analytics
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if ('error' in auth) return auth.error;
   const { session } = auth;
+
+  const proCheck = requireProAccess(session);
+  if (proCheck) return proCheck;
 
   if (!session.schoolId) {
     return new Response(JSON.stringify({ error: 'No school assigned' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
@@ -55,20 +58,15 @@ export async function GET(request: NextRequest) {
       { range: 'F (<60)', count: fCount, color: '#ef4444' },
     ];
 
-    // Fee collection stats (PRO or trial)
+    // Fee collection stats
     const feeStats = { totalExpected: 0, totalCollected: 0, pending: 0, overdue: 0 };
-    const isTrialActive = session.trialStart
-      ? (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24) <= 30
-      : false;
-    if (session.schoolPlan === 'PRO' || isTrialActive) {
-      const feeRecords = await db.feeRecord.findMany({
-        where: { schoolId },
-      });
-      feeStats.totalExpected = feeRecords.reduce((sum, f) => sum + f.amount, 0);
-      feeStats.totalCollected = feeRecords.filter(f => f.status === 'PAID').reduce((sum, f) => sum + f.amount, 0);
-      feeStats.pending = feeRecords.filter(f => f.status === 'PENDING').reduce((sum, f) => sum + f.amount, 0);
-      feeStats.overdue = feeRecords.filter(f => f.status === 'OVERDUE').reduce((sum, f) => sum + f.amount, 0);
-    }
+    const feeRecords = await db.feeRecord.findMany({
+      where: { schoolId },
+    });
+    feeStats.totalExpected = feeRecords.reduce((sum, f) => sum + f.amount, 0);
+    feeStats.totalCollected = feeRecords.filter(f => f.status === 'PAID').reduce((sum, f) => sum + f.amount, 0);
+    feeStats.pending = feeRecords.filter(f => f.status === 'PENDING').reduce((sum, f) => sum + f.amount, 0);
+    feeStats.overdue = feeRecords.filter(f => f.status === 'OVERDUE').reduce((sum, f) => sum + f.amount, 0);
 
     // Enrollment summary
     const totalStudents = await db.student.count({ where: { schoolId } });

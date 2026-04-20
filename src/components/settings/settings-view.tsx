@@ -283,14 +283,14 @@ export default function SettingsView() {
           {!isPro && !isTrialActive && (
             <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
               <p className="text-sm font-medium text-amber-800 mb-1">Upgrade to PRO</p>
-              <p className="text-xs text-amber-700 mb-3">Get access to Finance, Messaging, Advanced Reports, and up to 500 students & 50 teachers.</p>
+              <p className="text-xs text-amber-700 mb-3">Get access to Classes, Subjects, Attendance, Grades, Schedule, Events, Exams, Homework, Behavior, Announcements, Messages, Finance, Reports, Staff, and more.</p>
               <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white" onClick={() => store.navigate('upgrade')}>Upgrade Now</Button>
             </div>
           )}
           {isTrialActive && !isPro && (
             <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200">
               <p className="text-sm font-medium text-emerald-800 mb-1">Free Trial Active</p>
-              <p className="text-xs text-emerald-700 mb-3">You have <strong>{trialDaysLeft} days</strong> remaining. Upgrade to PRO to keep all features after your trial.</p>
+              <p className="text-xs text-emerald-700 mb-3">You have <strong>{trialDaysLeft} days</strong> of full PRO access remaining. After that, only Students, Teachers, Settings, and Dashboard will work. Upgrade now to keep all features.</p>
               <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => store.navigate('upgrade')}>Upgrade Now</Button>
             </div>
           )}

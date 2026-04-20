@@ -69,16 +69,40 @@ export function isTrialActive(school: { trialStart: Date | string | null } | nul
 
 /** Check if user can access a feature based on subscription plan */
 export function hasFeature(plan: string | null, feature: string, trialActive?: boolean): boolean {
-  const BASIC_FEATURES = [
-    'dashboard', 'students', 'teachers', 'classes', 'subjects',
-    'attendance', 'grades', 'timetable', 'announcements', 'settings',
+  // FREE (BASIC) always works: only dashboard, students, teachers, settings
+  const BASIC_FEATURES = ['dashboard', 'students', 'teachers', 'settings'];
+  // Everything else requires PRO or active trial
+  const PRO_ONLY_FEATURES = [
+    'classes', 'subjects', 'attendance', 'grades', 'timetable',
+    'announcements', 'events', 'exams', 'homework', 'behavior',
+    'messages', 'fees', 'payments', 'reports', 'staff',
   ];
-  const PRO_ONLY_FEATURES = ['fees', 'payments', 'reports', 'messages'];
 
   if (PRO_ONLY_FEATURES.includes(feature)) {
     return plan === 'PRO' || !!trialActive;
   }
   return BASIC_FEATURES.includes(feature);
+}
+
+/** Check if a session has PRO access (either paid or active 30-day trial) */
+export function isProOrTrial(session: { schoolPlan: string | null; trialStart: string | null; role: string }): boolean {
+  if (session.schoolPlan === 'PRO') return true;
+  if (session.role === 'SUPER_ADMIN') return true;
+  if (session.role === 'FINANCE') return true;
+  if (session.trialStart) {
+    const diffDays = (Date.now() - new Date(session.trialStart).getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays <= 30) return true;
+  }
+  return false;
+}
+
+/** Middleware: return 403 if user doesn't have PRO access */
+export function requireProAccess(session: { schoolPlan: string | null; trialStart: string | null; role: string }): Response | null {
+  if (isProOrTrial(session)) return null;
+  return new Response(JSON.stringify({ error: 'This feature requires a PRO plan. Upgrade to unlock it.' }), {
+    status: 403,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 /** Parse session from cookie header */

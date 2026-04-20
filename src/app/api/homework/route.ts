@@ -1,11 +1,14 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { authenticateRequest } from '@/lib/auth';
+import { authenticateRequest, requireProAccess } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if ('error' in auth) return auth.error;
   const { session } = auth;
+
+  const proCheck = requireProAccess(session);
+  if (proCheck) return proCheck;
 
   if (!session.schoolId) {
     return new Response(JSON.stringify({ error: 'No school assigned' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
@@ -38,6 +41,9 @@ export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request);
   if ('error' in auth) return auth.error;
   const { session } = auth;
+
+  const proCheck = requireProAccess(session);
+  if (proCheck) return proCheck;
 
   if (!session.schoolId) {
     return new Response(JSON.stringify({ error: 'No school assigned' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
